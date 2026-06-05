@@ -1,0 +1,11 @@
+name: Hello Catalina Delgado 
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  Tarea1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say Hello 
+        run: echo "Hello World"

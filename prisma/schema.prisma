@@ -1,0 +1,216 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Rol {
+  consumidor
+  negocio
+}
+
+enum CategoriaNegocios {
+  fruteria
+  panaderia
+  cafeteria
+  restaurante
+  supermercado
+  tienda
+}
+
+enum EstadoProducto {
+  disponible
+  apartado
+  expirado
+  agotado
+}
+
+enum EstadoReserva {
+  pendiente
+  confirmado
+  expirado
+  cancelado
+}
+
+model Usuario {
+  id                      String    @id @default(uuid())
+  nombre                  String    @db.VarChar(80)
+  correo                  String    @unique @db.VarChar(254)
+  passwordHash            String    // bcrypt cost 12 — nunca exponer
+  rol                     Rol
+  consentimientoPrivacidad Boolean  @default(false)
+  consentimientoTimestamp DateTime? // timestamp del momento del registro
+  consentimientoVersion   String?   @db.VarChar(20) // versión del aviso aceptado
+  optOutAt                DateTime? // POST /users/me/optout (derecho de oposición)
+  deletedAt               DateTime? // soft delete (ARCO - cancelación)
+  creadoEn                DateTime  @default(now())
+  actualizadoEn           DateTime  @updatedAt
+
+  // Relaciones
+  negocio      Negocio?   // un usuario negocio tiene un negocio
+  reservas     Reserva[]  // reservas como consumidor
+  mensajes     Mensaje[]
+  reviews      Review[]
+  logsAuditoria LogAuditoria[]
+
+  @@map("usuarios")
+}
+
+model Negocio {
+  id           String            @id @default(uuid())
+  usuarioId    String            @unique
+  nombre       String            @db.VarChar(120)
+  direccion    String            @db.VarChar(200)
+  categoria    CategoriaNegocios
+  latitud      Decimal           @db.Decimal(10, 7)
+  longitud     Decimal           @db.Decimal(10, 7)
+  calificacionPromedio Decimal   @default(0) @db.Decimal(3, 2)
+  totalReviews Int               @default(0)
+  creadoEn     DateTime          @default(now())
+  actualizadoEn DateTime         @updatedAt
+
+  // Relaciones
+  usuario      Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  productos    Producto[]
+  reservas     Reserva[]
+  reviews      Review[]
+  conversaciones Conversacion[]
+
+  @@unique([usuarioId, nombre]) // un usuario no puede tener dos negocios con el mismo nombre
+  @@map("negocios")
+}
+
+model Producto {
+  id                 String         @id @default(uuid())
+  negocioId          String
+  nombre             String         @db.VarChar(100)
+  descripcion        String?        @db.VarChar(500)
+  precioOriginal     Decimal        @db.Decimal(10, 2)
+  precioOferta       Decimal        @db.Decimal(10, 2)
+  cantidadDisponible Int
+  cantidadOriginal   Int            // para calcular kgSalvados estimados
+  kgSalvados         Decimal?       @default(0) @db.Decimal(8, 2) // campo para evento reserva.confirmada
+  fechaCaducidad     DateTime
+  estado             EstadoProducto @default(disponible)
+  creadoEn           DateTime       @default(now())
+  actualizadoEn      DateTime       @updatedAt
+
+  // Relaciones
+  negocio   Negocio          @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+  imagenes  ProductoImagen[]
+  reservas  Reserva[]
+
+  @@map("productos")
+}
+
+model ProductoImagen {
+  id         String   @id @default(uuid())
+  productoId String
+  url        String   @db.VarChar(500) // URL pública de Cloudflare R2
+  nombreUuid String   @db.VarChar(100) // UUID generado para evitar colisiones
+  mimeType   String   @db.VarChar(20)  // image/jpeg | image/png | image/webp
+  tamanioBytes Int
+  orden      Int      @default(0)      // para ordenar el carrusel
+  creadoEn   DateTime @default(now())
+
+  // Relaciones
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@map("producto_imagenes")
+}
+
+model Reserva {
+  id             String        @id @default(uuid())
+  productoId     String
+  consumidorId   String
+  negocioId      String
+  estado         EstadoReserva @default(pendiente)
+  expiresAt      DateTime      // NOW() + 2 horas (calculado en crear-reserva.use-case.ts)
+  fechaRecoleccion DateTime?   // se llena en PATCH /reservas/:id/confirmar
+  creadaEn       DateTime      @default(now())
+  actualizadoEn  DateTime      @updatedAt
+
+  // Relaciones
+  producto     Producto  @relation(fields: [productoId], references: [id])
+  consumidor   Usuario   @relation(fields: [consumidorId], references: [id])
+  negocio      Negocio   @relation(fields: [negocioId], references: [id])
+  review       Review?
+  conversacion Conversacion?
+
+  // Un consumidor no puede tener más de 1 reserva activa para el mismo producto
+  @@unique([productoId, consumidorId, estado])
+  @@map("reservas")
+}
+
+model Conversacion {
+  id          String   @id @default(uuid())
+  reservaId   String   @unique
+  negocioId   String
+  creadaEn    DateTime @default(now())
+
+  // Relaciones
+  reserva  Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  negocio  Negocio   @relation(fields: [negocioId], references: [id])
+  mensajes Mensaje[]
+
+  @@map("conversaciones")
+}
+
+
+model Mensaje {
+  id              String   @id @default(uuid())
+  conversacionId  String
+  remitenteId     String
+  contenido       String   @db.VarChar(500) // sanitizado (sin HTML)
+  creadoEn        DateTime @default(now())
+
+  // Relaciones
+  conversacion Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  remitente    Usuario      @relation(fields: [remitenteId], references: [id])
+
+  // Índice para el polling: WHERE id > lastMessageId AND conversacionId = X
+  @@index([conversacionId, creadoEn])
+  @@map("mensajes")
+}
+model Review {
+  id           String   @id @default(uuid())
+  reservaId    String   @unique  // solo 1 review por reserva
+  negocioId    String
+  consumidorId String
+  calificacion Int      // 1-5, validado en DTO
+  comentario   String?  @db.VarChar(300) // opcional, sanitizado
+  creadoEn     DateTime @default(now())
+
+  // Relaciones
+  reserva    Reserva @relation(fields: [reservaId], references: [id])
+  negocio    Negocio @relation(fields: [negocioId], references: [id])
+  consumidor Usuario @relation(fields: [consumidorId], references: [id])
+
+  @@map("reviews")
+}
+
+model LogAuditoria {
+  id         String   @id @default(uuid())
+  usuarioId  String?  // nullable: puede haber logs de intentos sin usuario
+  accion     String   @db.VarChar(60)  // ej: "login_exitoso", "reserva_creada"
+  ipCliente  String   @db.VarChar(45)  // IPv4 o IPv6
+  codigoHttp Int
+  metadata   Json?    // info adicional sin datos sensibles
+  creadoEn   DateTime @default(now())
+
+  // Relaciones
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  // Los logs se conservan 3 años por obligación legal (SEG-BE-05)
+  @@index([usuarioId, creadoEn])
+  @@index([accion, creadoEn])
+  @@map("logs_auditoria")
+}

@@ -11,7 +11,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<string> {
+  async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string } }> {
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: loginDto.correo },
       include: { negocio: true },
@@ -37,6 +37,16 @@ export class AuthService {
       negocioId: usuario.negocio?.id ?? null,
     };
 
-    return this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload);
+
+    return {
+      token,
+      user: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+      },
+    };
   }
 }

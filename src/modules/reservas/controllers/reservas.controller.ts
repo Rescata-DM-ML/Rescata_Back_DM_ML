@@ -2,6 +2,9 @@ import {
   Body,
   Controller,
   Post,
+  Get,
+  Put,
+  Param,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -56,6 +59,34 @@ export class ReservasController {
     // Nota: El negocioId del consumidor se extrae de forma segura a través del JWT payload (user.negocioId)
     // para prevenir problemas de propiedad y evitar vulnerabilidades de Mass Assignment (no viene en el Body).
     return this.reservasService.crearReserva(dto.productoId, user);
+  }
+
+  @Get("mis-reservas")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor")
+  async getMisReservas() {
+    return { message: "GET /reservas/mis-reservas - consumidor skeleton" };
+  }
+
+  @Get("negocio")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async getReservasNegocio() {
+    return { message: "GET /reservas/negocio - negocio skeleton" };
+  }
+
+  @Put(":id/confirmar")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async confirmarReserva(@Param("id") id: string) {
+    return { message: `PUT /reservas/${id}/confirmar - negocio skeleton` };
+  }
+
+  @Put(":id/cancelar")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor", "negocio")
+  async cancelarReserva(@Param("id") id: string) {
+    return { message: `PUT /reservas/${id}/cancelar - consumidor/negocio skeleton` };
   }
 }
 

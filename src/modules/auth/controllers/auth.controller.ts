@@ -13,7 +13,7 @@ export class AuthController {
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) response: express.Response,
   ) {
-    const token = await this.authService.login(loginDto);
+    const { token, user } = await this.authService.login(loginDto);
 
     response.cookie("token", token, {
       httpOnly: true,
@@ -23,7 +23,7 @@ export class AuthController {
       path: "/",
     });
 
-    return { message: "Login exitoso" };
+    return { message: "Login exitoso", user };
   }
 
   @Post("logout")

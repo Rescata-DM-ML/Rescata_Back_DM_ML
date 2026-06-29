@@ -3,6 +3,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { RedisModule } from "./redis/redis.module";
 import { PrismaModule } from "./core/prisma.module";
+import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NegociosModule } from "./modules/negocios/negocios.module";
 import { ProductosModule } from "./modules/productos/productos.module";
@@ -16,6 +17,7 @@ import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
   imports: [
     RedisModule,
     PrismaModule,
+    ScheduleModule.forRoot(),
     AuthModule,
     NegociosModule,
     ProductosModule,

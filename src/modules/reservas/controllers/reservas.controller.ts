@@ -3,12 +3,15 @@ import {
   Controller,
   Post,
   UseGuards,
+  Patch,
+  Param,
 } from "@nestjs/common";
 import {
   ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
+  ApiParam,
 } from "@nestjs/swagger";
 import { AuthGuard } from "../../../core/guards/auth.guard";
 import { RolesGuard } from "../../../core/guards/roles.guard";
@@ -57,6 +60,45 @@ export class ReservasController {
     // para prevenir problemas de propiedad y evitar vulnerabilidades de Mass Assignment (no viene en el Body).
     return this.reservasService.crearReserva(dto.productoId, user);
   }
+
+  @Patch(":id/confirmar")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  @ApiOperation({
+    summary: "Confirmar recolección de producto",
+    description:
+      "Solo el negocio dueño puede confirmar. Emite reserva.confirmada a Redis para notificaciones, estadísticas y reviews.",
+  })
+  @ApiParam({
+    name: "id",
+    description: "UUID de la reserva a confirmar",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @ApiResponse({
+    status: 200,
+    type: ReservaEntity,
+    description: "Reserva confirmada exitosamente",
+  })
+  @ApiResponse({ status: 404, description: "Reserva no encontrada" })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Reserva no pertenece a tu negocio o cuenta sin negocio registrado",
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      "Reserva no confirmable. Estado actual: expirado o cancelado",
+  })
+  async confirmarRecoleccion(
+    @Param("id") reservaId: string,
+    @CurrentUser() user: JwtPayload
+  ): Promise<ReservaEntity> {
+    return this.reservasService.confirmarRecoleccion(
+      reservaId,
+      user.negocioId
+    );
+  }
 }
 
 // PRUEBA DOCUMENTADA
@@ -99,3 +141,59 @@ export class ReservasController {
 // > SUBSCRIBE reserva.creada
 // Luego hacer POST /reservas exitoso.
 // Debe aparecer el mensaje JSON en redis-cli.
+
+// ═══════════════════════════════════════════════
+// PRUEBA DOCUMENTADA (RF-16 Confirmación Recolección)
+// ═══════════════════════════════════════════════
+//
+// PREREQUISITO: Tener una reserva en estado 'pendiente' del RF-BE-07.
+//
+// CASO 1 — Confirmación exitosa (HTTP 200):
+// PATCH /reservas/{reservaId}/confirmar
+// Header: Authorization: Bearer <token-negocio>
+// Respuesta esperada:
+// {
+//   "success": true,
+//   "data": {
+//     "id": "uuid",
+//     "estado": "confirmado",
+//     "fechaRecoleccion": "2024-01-15T14:30:00.000Z"
+//   }
+// }
+// En redis-cli SUBSCRIBE reserva.confirmada debe aparecer:
+// {
+//   "reservaId": "...",
+//   "consumidorId": "...",
+//   "negocioId": "...",
+//   "productoId": "...",
+//   "kgSalvados": 0
+// }
+//
+// CASO 2 — Reserva expirada (HTTP 400):
+// PATCH /reservas/{id-expirado}/confirmar
+// Respuesta:
+// {
+//   "success": false,
+//   "statusCode": 400,
+//   "error": "reserva_no_confirmable",
+//   "estado_actual": "expirado",
+//   "message": "La reserva no puede confirmarse. Estado actual: expirado"
+// }
+//
+// CASO 3 — BOLA: negocio intenta confirmar reserva de otro negocio (HTTP 403):
+// PATCH /reservas/{id-de-otro}/confirmar
+// Header: Authorization: Bearer <token-negocio-B>
+// Respuesta:
+// {
+//   "success": false,
+//   "statusCode": 403,
+//   "error": "acceso_denegado",
+//   "message": "Esta reserva no pertenece a tu negocio"
+// }
+//
+// CASO 4 — Verificar evento Redis:
+// docker exec -it rescata_redis redis-cli
+// > SUBSCRIBE reserva.confirmada
+// Luego hacer PATCH exitoso.
+// Debe aparecer el JSON del evento.
+

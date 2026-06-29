@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { RedisModule } from "./redis/redis.module";
 import { PrismaModule } from "./core/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NegociosModule } from "./modules/negocios/negocios.module";
@@ -13,6 +14,7 @@ import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
 
 @Module({
   imports: [
+    RedisModule,
     PrismaModule,
     AuthModule,
     NegociosModule,

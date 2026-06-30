@@ -2,6 +2,11 @@ node_modules/
 dist/
 
 .env
+.env.keys
 *.env.local
 
 /generated/prisma
+.env*
+.flaskenv*
+!.env.project
+!.env.vault

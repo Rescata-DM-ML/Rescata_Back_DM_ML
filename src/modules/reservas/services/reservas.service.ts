@@ -1,4 +1,10 @@
-import { Inject, Injectable } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "../../../core/prisma.service";
 import { RedisService } from "../../../redis/redis.service";
@@ -33,6 +39,74 @@ export class ReservasService {
       user.sub,
       user.negocioId
     );
+  }
+
+  async confirmarRecoleccion(
+    reservaId: string,
+    negocioId: string | undefined
+  ): Promise<ReservaEntity> {
+    // PASO 1 — Verificar negocioId existe en JWT
+    if (!negocioId) {
+      throw new ForbiddenException({
+        error: "negocio_no_registrado",
+        message:
+          "Tu cuenta no tiene un negocio asociado. Completa el registro de negocio.",
+      });
+    }
+
+    // PASO 2 — Buscar la reserva
+    const reserva = await this.repository.findById(reservaId);
+    if (!reserva) {
+      throw new NotFoundException({
+        error: "reserva_no_encontrada",
+        message: "La reserva no existe",
+      });
+    }
+
+    // PASO 3 — Verificar propiedad BOLA
+    if (reserva.negocioId !== negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+        message: "Esta reserva no pertenece a tu negocio",
+      });
+    }
+
+    // PASO 4 — Verificar estado confirmable
+    if (reserva.estado !== "pendiente") {
+      throw new BadRequestException({
+        error: "reserva_no_confirmable",
+        estado_actual: reserva.estado,
+        message: `La reserva no puede confirmarse. Estado actual: ${reserva.estado}`,
+      });
+    }
+
+    // PASO 5 — Confirmar en BD
+    const fechaRecoleccion = new Date();
+    const confirmada = await this.repository.updateConfirmar(
+      reservaId,
+      fechaRecoleccion
+    );
+
+    // PASO 6 — Publicar en Redis (Observer/EDA)
+    try {
+      await this.redisService.publish("reserva.confirmada", {
+        reservaId: confirmada.id,
+        consumidorId: confirmada.consumidorId,
+        negocioId: confirmada.negocioId,
+        productoId: confirmada.productoId,
+        kgSalvados: Number(confirmada.producto.kgSalvados ?? 0),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(
+        "Error publicando reserva.confirmada:",
+        message
+      );
+      // NO relanzar. La reserva ya está confirmada en BD. Redis falla gracefully.
+    }
+
+    // PASO 7 — Retornar
+    return new ReservaEntity(confirmada);
   }
 
   async cancelarReservasExpiradas(): Promise<void> {

@@ -7,6 +7,16 @@ import { LoginDto } from "../dtos/login.dto";
 describe("AuthController", () => {
   let controller: AuthController;
   let service: AuthService;
+  let originalNodeEnv: string | undefined;
+
+  beforeAll(() => {
+    originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+  });
 
   const mockAuthService = {
     login: jest.fn().mockResolvedValue({

@@ -2,9 +2,11 @@ import {
   Body,
   Controller,
   Post,
+  Get,
+  Put,
+  Param,
   UseGuards,
   Patch,
-  Param,
 } from "@nestjs/common";
 import {
   ApiBody,
@@ -61,6 +63,20 @@ export class ReservasController {
     return this.reservasService.crearReserva(dto.productoId, user);
   }
 
+  @Get("mis-reservas")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor")
+  async getMisReservas() {
+    return { message: "GET /reservas/mis-reservas - consumidor skeleton" };
+  }
+
+  @Get("negocio")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async getReservasNegocio() {
+    return { message: "GET /reservas/negocio - negocio skeleton" };
+  }
+
   @Patch(":id/confirmar")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
@@ -98,6 +114,13 @@ export class ReservasController {
       reservaId,
       user.negocioId
     );
+  }
+
+  @Put(":id/cancelar")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor", "negocio")
+  async cancelarReserva(@Param("id") id: string) {
+    return { message: `PUT /reservas/${id}/cancelar - consumidor/negocio skeleton` };
   }
 }
 
@@ -196,4 +219,3 @@ export class ReservasController {
 // > SUBSCRIBE reserva.confirmada
 // Luego hacer PATCH exitoso.
 // Debe aparecer el JSON del evento.
-

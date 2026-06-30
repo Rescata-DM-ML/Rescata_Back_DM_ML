@@ -4,6 +4,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { RedisModule } from "./redis/redis.module";
 import { PrismaModule } from "./core/prisma.module";
+import { CoreModule } from "./core/core.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NegociosModule } from "./modules/negocios/negocios.module";
@@ -21,6 +22,7 @@ import { TransformInterceptor } from "./core/interceptors/transform.interceptor"
   imports: [
     RedisModule,
     PrismaModule,
+    CoreModule,
     ScheduleModule.forRoot(),
     AuthModule,
     NegociosModule,

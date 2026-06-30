@@ -22,6 +22,9 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string } }> {
+    // Nota: Las excepciones lanzadas aquí son interceptadas por el HttpExceptionFilter global
+    // para registrar un log de auditoría genérico como "autenticacion_fallida" sin exponer detalles
+    // sobre si el correo existe o no en la base de datos (mitigando enumeración de cuentas).
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: loginDto.correo },
       include: { negocio: true },

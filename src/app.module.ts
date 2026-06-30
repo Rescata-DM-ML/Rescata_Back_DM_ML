@@ -12,6 +12,7 @@ import { ChatModule } from "./modules/chat/chat.module";
 import { NotificacionesModule } from "./modules/notificaciones/notificaciones.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
+import { UsuariosModule } from "./modules/usuarios/usuarios.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
     NotificacionesModule,
     ReviewsModule,
     EstadisticasModule,
+    UsuariosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

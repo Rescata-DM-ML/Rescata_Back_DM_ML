@@ -26,8 +26,12 @@ export class AuthService {
       include: { negocio: true },
     });
 
-    if (!usuario || usuario.deletedAt) {
+    if (!usuario) {
       throw new UnauthorizedException({ error: "credenciales_invalidas" });
+    }
+
+    if (usuario.deletedAt) {
+      throw new UnauthorizedException({ error: "cuenta_cancelada" });
     }
 
     const contrasenaValida = await bcrypt.compare(

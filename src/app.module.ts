@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { RedisModule } from "./redis/redis.module";
@@ -13,6 +14,8 @@ import { NotificacionesModule } from "./modules/notificaciones/notificaciones.mo
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
 import { UsuariosModule } from "./modules/usuarios/usuarios.module";
+import { HttpExceptionFilter } from "./core/filters/http-exception.filter";
+import { TransformInterceptor } from "./core/interceptors/transform.interceptor";
 
 @Module({
   imports: [
@@ -30,6 +33,16 @@ import { UsuariosModule } from "./modules/usuarios/usuarios.module";
     UsuariosModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

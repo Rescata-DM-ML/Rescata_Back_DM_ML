@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, BadRequestException, ConflictException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Cron } from "@nestjs/schedule";
 import * as bcrypt from "bcrypt";
@@ -6,6 +6,9 @@ import Redis from "ioredis";
 import { PrismaService } from "../../../core/prisma.service";
 import { LoginDto } from "../dtos/login.dto";
 import { RegisterDto } from "../dtos/register.dto";
+import { RegisterBusinessDto } from "../dtos/register-business.dto";
+import { MAPA_ADAPTER } from "../../../core/adapters/mapa.adapter.interface";
+import type { IMapaAdapter } from "../../../core/adapters/mapa.adapter.interface";
 
 @Injectable()
 export class AuthService {
@@ -14,6 +17,8 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    @Inject(MAPA_ADAPTER)
+    private readonly mapaAdapter: IMapaAdapter,
   ) {
     this.redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
     this.redisClient.on("error", (err) => {
@@ -116,6 +121,117 @@ export class AuthService {
       correo: usuario.correo,
       rol: usuario.rol,
       creadoEn: usuario.creadoEn,
+    };
+  }
+
+  async registerBusiness(registerBusinessDto: RegisterBusinessDto) {
+    const {
+      nombre,
+      correo,
+      contrasena,
+      confirmacionContrasena,
+      nombreNegocio,
+      direccionNegocio,
+      categoriaNegocio,
+    } = registerBusinessDto;
+
+    if (contrasena !== confirmacionContrasena) {
+      throw new BadRequestException({ error: "contrasenas_no_coinciden" });
+    }
+
+    const usuarioExistente = await this.prisma.usuario.findUnique({
+      where: { correo },
+    });
+
+    if (usuarioExistente) {
+      throw new ConflictException({
+        error: "correo_duplicado",
+        message: "El correo ya está registrado",
+      });
+    }
+
+    // 1. Geocodificar la dirección del negocio usando mapaAdapter
+    let coordenadas;
+    try {
+      coordenadas = await this.mapaAdapter.geocodificar(direccionNegocio);
+    } catch {
+      throw new BadRequestException({
+        error: "direccion_invalida",
+        message: "No se pudieron obtener las coordenadas para la dirección proporcionada",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(contrasena, 12);
+
+    // 2. Transacción atómica
+    const { usuario, negocio } = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.usuario.create({
+        data: {
+          nombre,
+          correo,
+          passwordHash,
+          rol: "negocio",
+          consentimientoPrivacidad: true,
+          consentimientoTimestamp: new Date(),
+        },
+      });
+
+      const biz = await tx.negocio.create({
+        data: {
+          nombre: nombreNegocio,
+          direccion: direccionNegocio,
+          categoria: categoriaNegocio,
+          latitud: coordenadas.lat,
+          longitud: coordenadas.lng,
+          usuarioId: user.id,
+        },
+      });
+
+      return { usuario: user, negocio: biz };
+    });
+
+    // 3. Publicar eventos a Redis
+    this.redisClient.publish(
+      "user.registered",
+      JSON.stringify({
+        userId: usuario.id,
+        correo: usuario.correo,
+        timestamp: new Date().toISOString(),
+      }),
+    ).catch((redisError) => {
+      console.error("Failed to publish user.registered event to Redis:", redisError);
+    });
+
+    this.redisClient.publish(
+      "negocio.creado",
+      JSON.stringify({
+        negocioId: negocio.id,
+        userId: usuario.id,
+        nombre: negocio.nombre,
+        categoria: negocio.categoria,
+      }),
+    ).catch((redisError) => {
+      console.error("Failed to publish negocio.creado event to Redis:", redisError);
+    });
+
+    // 4. Iniciar sesión automáticamente (firmar JWT) y retornar token + user info
+    const payload = {
+      sub: usuario.id,
+      email: usuario.correo,
+      rol: usuario.rol,
+      negocioId: negocio.id,
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    return {
+      token,
+      user: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+      },
     };
   }
 

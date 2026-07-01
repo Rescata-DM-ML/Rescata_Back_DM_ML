@@ -38,6 +38,11 @@ export interface IReservasRepository {
   updateEstado(id: string, estado: string): Promise<ReservaConRelaciones>;
 
   findExpiradas(): Promise<ReservaConRelaciones[]>;
+
+  updateConfirmar(
+    id: string,
+    fechaRecoleccion: Date
+  ): Promise<ReservaConRelaciones>;
 }
 
 export const RESERVAS_REPOSITORY = Symbol("RESERVAS_REPOSITORY");

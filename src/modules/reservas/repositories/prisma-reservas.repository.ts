@@ -144,4 +144,20 @@ export class PrismaReservasRepository implements IReservasRepository {
 
     return this.mapRow(result);
   }
+
+  async updateConfirmar(
+    id: string,
+    fechaRecoleccion: Date
+  ): Promise<ReservaConRelaciones> {
+    const result = (await this.prisma.reserva.update({
+      where: { id },
+      data: {
+        estado: "confirmado" as EstadoReserva,
+        fechaRecoleccion,
+      },
+      include: includeRelaciones,
+    })) as DbReservaResult;
+
+    return this.mapRow(result);
+  }
 }

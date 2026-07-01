@@ -1,8 +1,10 @@
 import { Module } from "@nestjs/common";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { RedisModule } from "./redis/redis.module";
 import { PrismaModule } from "./core/prisma.module";
+import { CoreModule } from "./core/core.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./modules/auth/auth.module";
 import { NegociosModule } from "./modules/negocios/negocios.module";
@@ -12,11 +14,15 @@ import { ChatModule } from "./modules/chat/chat.module";
 import { NotificacionesModule } from "./modules/notificaciones/notificaciones.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
+import { UsuariosModule } from "./modules/usuarios/usuarios.module";
+import { HttpExceptionFilter } from "./core/filters/http-exception.filter";
+import { TransformInterceptor } from "./core/interceptors/transform.interceptor";
 
 @Module({
   imports: [
     RedisModule,
     PrismaModule,
+    CoreModule,
     ScheduleModule.forRoot(),
     AuthModule,
     NegociosModule,
@@ -26,8 +32,19 @@ import { EstadisticasModule } from "./modules/estadisticas/estadisticas.module";
     NotificacionesModule,
     ReviewsModule,
     EstadisticasModule,
+    UsuariosModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

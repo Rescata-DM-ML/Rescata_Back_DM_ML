@@ -1,8 +1,11 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Query, Param, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { ProductosService } from "../services/productos.service";
 import { CercanosQueryDto } from "../dtos/cercanos-query.dto";
 import { ProductoEntity } from "../entities/producto.entity";
+import { AuthGuard } from "../../../core/guards/auth.guard";
+import { RolesGuard } from "../../../core/guards/roles.guard";
+import { Roles } from "../../../core/decorators/roles.decorator.decorator";
 
 @ApiTags("Productos")
 @Controller("productos")
@@ -36,6 +39,37 @@ export class ProductosController {
     total: number;
   }> {
     return this.productosService.findCercanos(query);
+  }
+
+  @Get()
+  async getProductos() {
+    return { message: "GET /productos - public skeleton" };
+  }
+
+  @Get(":id")
+  async getProductoById(@Param("id") id: string) {
+    return { message: `GET /productos/${id} - public skeleton` };
+  }
+
+  @Post()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async crearProducto() {
+    return { message: "POST /productos - negocio skeleton" };
+  }
+
+  @Put(":id")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async actualizarProducto(@Param("id") id: string) {
+    return { message: `PUT /productos/${id} - negocio skeleton` };
+  }
+
+  @Delete(":id")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("negocio")
+  async eliminarProducto(@Param("id") id: string) {
+    return { message: `DELETE /productos/${id} - negocio skeleton` };
   }
 }
 

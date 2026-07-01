@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { Cron } from "@nestjs/schedule";
 import * as bcrypt from "bcrypt";
 import Redis from "ioredis";
 import { PrismaService } from "../../../core/prisma.service";
@@ -21,13 +22,20 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string } }> {
+    // Nota: Las excepciones lanzadas aquí son interceptadas por el HttpExceptionFilter global
+    // para registrar un log de auditoría genérico como "autenticacion_fallida" sin exponer detalles
+    // sobre si el correo existe o no en la base de datos (mitigando enumeración de cuentas).
     const usuario = await this.prisma.usuario.findUnique({
       where: { correo: loginDto.correo },
       include: { negocio: true },
     });
 
-    if (!usuario || usuario.deletedAt) {
+    if (!usuario) {
       throw new UnauthorizedException({ error: "credenciales_invalidas" });
+    }
+
+    if (usuario.deletedAt) {
+      throw new UnauthorizedException({ error: "cuenta_cancelada" });
     }
 
     const contrasenaValida = await bcrypt.compare(
@@ -109,5 +117,75 @@ export class AuthService {
       rol: usuario.rol,
       creadoEn: usuario.creadoEn,
     };
+  }
+
+  @Cron("0 2 * * *") // Ejecutar limpieza automática todos los días a las 2:00 AM
+  async ejecutarLimpiezaCicloVida(): Promise<void> {
+    const ahora = new Date();
+
+    // 1. Conservar logs de auditoría por 3 años únicamente
+    const limiteLogs = new Date();
+    limiteLogs.setFullYear(ahora.getFullYear() - 3);
+    await this.prisma.logAuditoria.deleteMany({
+      where: { creadoEn: { lt: limiteLogs } },
+    });
+
+    // 2. Anonimizar usuarios que solicitaron cancelación (deletedAt no nulo) hace más de 30 días
+    const limiteCancelacion = new Date();
+    limiteCancelacion.setDate(ahora.getDate() - 30);
+
+    const candidatosCancelacion = await this.prisma.usuario.findMany({
+      where: {
+        deletedAt: { lte: limiteCancelacion },
+        NOT: {
+          correo: { endsWith: "@rescata.invalid" },
+        },
+      },
+    });
+
+    for (const usuario of candidatosCancelacion) {
+      await this.prisma.usuario.update({
+        where: { id: usuario.id },
+        data: {
+          nombre: "Usuario Eliminado",
+          correo: `eliminado_${usuario.id}@rescata.invalid`,
+          passwordHash: "ANONIMIZADO",
+        },
+      });
+    }
+
+    // 3. Anonimizar usuarios inactivos por más de 2 años
+    const limiteInactividad = new Date();
+    limiteInactividad.setFullYear(ahora.getFullYear() - 2);
+
+    const candidatosInactividad = await this.prisma.usuario.findMany({
+      where: {
+        deletedAt: null,
+        creadoEn: { lt: limiteInactividad },
+      },
+    });
+
+    for (const usuario of candidatosInactividad) {
+      // Validar si el usuario posee registros de logs de auditoría en los últimos 2 años
+      const actividadReciente = await this.prisma.logAuditoria.findFirst({
+        where: {
+          usuarioId: usuario.id,
+          creadoEn: { gte: limiteInactividad },
+        },
+      });
+
+      if (!actividadReciente) {
+        // Anonimizar por inactividad
+        await this.prisma.usuario.update({
+          where: { id: usuario.id },
+          data: {
+            deletedAt: ahora,
+            nombre: "Usuario Eliminado",
+            correo: `eliminado_${usuario.id}@rescata.invalid`,
+            passwordHash: "ANONIMIZADO",
+          },
+        });
+      }
+    }
   }
 }

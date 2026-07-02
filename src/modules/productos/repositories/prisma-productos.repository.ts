@@ -1,10 +1,138 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../core/prisma.service";
 import { IProductosRepository, ProductoCercanoRaw, ResultadoCercanos } from "./productos.repository.interface";
+import { ProductoEntity } from "../entities/producto.entity";
+import { EstadoProducto } from "../../../../generated/prisma";
 
 @Injectable()
 export class PrismaProductosRepository implements IProductosRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async crear(data: {
+    nombre: string;
+    descripcion: string;
+    precioOriginal: number;
+    precioOferta: number;
+    cantidadDisponible: number;
+    fechaCaducidad: Date;
+    negocioId: string;
+  }): Promise<ProductoEntity> {
+    const created = await this.prisma.producto.create({
+      data: {
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        precioOriginal: data.precioOriginal,
+        precioOferta: data.precioOferta,
+        cantidadDisponible: data.cantidadDisponible,
+        cantidadOriginal: data.cantidadDisponible,
+        fechaCaducidad: data.fechaCaducidad,
+        negocioId: data.negocioId,
+        estado: EstadoProducto.disponible,
+      },
+    });
+
+    return new ProductoEntity({
+      id: created.id,
+      nombre: created.nombre,
+      descripcion: created.descripcion || "",
+      precioOriginal: Number(created.precioOriginal),
+      precioOferta: Number(created.precioOferta),
+      cantidadDisponible: created.cantidadDisponible,
+      fechaCaducidad: created.fechaCaducidad,
+      negocioId: created.negocioId,
+      estado: created.estado,
+      creadoEn: created.creadoEn,
+    });
+  }
+
+  async findById(id: string): Promise<ProductoEntity | null> {
+    const row = await this.prisma.producto.findUnique({
+      where: { id },
+    });
+    if (!row) return null;
+
+    return new ProductoEntity({
+      id: row.id,
+      nombre: row.nombre,
+      descripcion: row.descripcion || "",
+      precioOriginal: Number(row.precioOriginal),
+      precioOferta: Number(row.precioOferta),
+      cantidadDisponible: row.cantidadDisponible,
+      fechaCaducidad: row.fechaCaducidad,
+      negocioId: row.negocioId,
+      estado: row.estado,
+      creadoEn: row.creadoEn,
+    });
+  }
+
+  async findAll(): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany();
+    return rows.map(
+      (row) =>
+        new ProductoEntity({
+          id: row.id,
+          nombre: row.nombre,
+          descripcion: row.descripcion || "",
+          precioOriginal: Number(row.precioOriginal),
+          precioOferta: Number(row.precioOferta),
+          cantidadDisponible: row.cantidadDisponible,
+          fechaCaducidad: row.fechaCaducidad,
+          negocioId: row.negocioId,
+          estado: row.estado,
+          creadoEn: row.creadoEn,
+        })
+    );
+  }
+
+  async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany({
+      where: { negocioId },
+    });
+    return rows.map(
+      (row) =>
+        new ProductoEntity({
+          id: row.id,
+          nombre: row.nombre,
+          descripcion: row.descripcion || "",
+          precioOriginal: Number(row.precioOriginal),
+          precioOferta: Number(row.precioOferta),
+          cantidadDisponible: row.cantidadDisponible,
+          fechaCaducidad: row.fechaCaducidad,
+          negocioId: row.negocioId,
+          estado: row.estado,
+          creadoEn: row.creadoEn,
+        })
+    );
+  }
+
+  async contarImagenes(productoId: string): Promise<number> {
+    return this.prisma.productoImagen.count({
+      where: { productoId },
+    });
+  }
+
+  async agregarImagen(
+    productoId: string,
+    url: string,
+    nombreUuid?: string,
+    mimeType?: string,
+    tamanioBytes?: number
+  ): Promise<void> {
+    const filename = url.split("/").pop() || "image.jpg";
+    const uuidPart = filename.split(".")[0] || "uuid-placeholder";
+    const ext = filename.split(".").pop() || "jpg";
+    const inferredMime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+
+    await this.prisma.productoImagen.create({
+      data: {
+        productoId,
+        url,
+        nombreUuid: nombreUuid || uuidPart,
+        mimeType: mimeType || inferredMime,
+        tamanioBytes: tamanioBytes || 1024,
+      },
+    });
+  }
 
   async findCercanos(params: {
     lat: number;

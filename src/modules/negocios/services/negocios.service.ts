@@ -1,4 +1,5 @@
-import { Injectable, Inject, ConflictException, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Injectable, Inject, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { CreateNegocioDto } from '../dtos/create-negocio.dto';
 import { NegocioEntity } from '../entities/negocio.entity';
 import { NEGOCIOS_REPOSITORY } from '../repositories/negocios.repository.interface';
@@ -68,5 +69,41 @@ export class NegociosService {
       });
     }
     return negocio;
+  }
+
+  async actualizar(id: string, userId: string, dto: any): Promise<NegocioEntity> {
+    const negocio = await this.negociosRepository.findById(id);
+    if (!negocio) {
+      throw new NotFoundException({
+        error: 'negocio_no_encontrado',
+        message: 'El negocio no existe',
+      });
+    }
+    if (negocio.usuarioId !== userId) {
+      throw new ForbiddenException({
+        error: 'acceso_denegado',
+      });
+    }
+    return this.negociosRepository.actualizar(id, dto);
+  }
+
+  async eliminar(id: string, userId: string): Promise<void> {
+    const negocio = await this.negociosRepository.findById(id);
+    if (!negocio) {
+      throw new NotFoundException({
+        error: 'negocio_no_encontrado',
+        message: 'El negocio no existe',
+      });
+    }
+    if (negocio.usuarioId !== userId) {
+      throw new ForbiddenException({
+        error: 'acceso_denegado',
+      });
+    }
+    await this.negociosRepository.eliminar(id);
+  }
+
+  async buscar(filtro: string): Promise<NegocioEntity[]> {
+    return this.negociosRepository.buscar(filtro);
   }
 }

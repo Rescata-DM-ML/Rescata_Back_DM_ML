@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma.service';
 import { INegociosRepository } from './negocios.repository.interface';
@@ -8,7 +9,7 @@ import { CategoriaNegocios } from '../../../../generated/prisma';
 export class PrismaNegociosRepository implements INegociosRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   private mapRow(row: any): NegocioEntity {
     return {
       id: row.id,
@@ -18,6 +19,7 @@ export class PrismaNegociosRepository implements INegociosRepository {
       latitud: Number(row.latitud),
       longitud: Number(row.longitud),
       creadoEn: row.creadoEn,
+      usuarioId: row.usuarioId,
     };
   }
 
@@ -63,5 +65,31 @@ export class PrismaNegociosRepository implements INegociosRepository {
   async findAll(): Promise<NegocioEntity[]> {
     const rows = await this.prisma.negocio.findMany();
     return rows.map((row) => this.mapRow(row));
+  }
+
+  async buscar(filtro: string): Promise<NegocioEntity[]> {
+    const rows = await this.prisma.negocio.findMany({
+      where: {
+        nombre: {
+          contains: filtro,
+          mode: 'insensitive'
+        }
+      }
+    });
+    return rows.map(row => this.mapRow(row));
+  }
+
+  async actualizar(id: string, data: any): Promise<NegocioEntity> {
+    const row = await this.prisma.negocio.update({
+      where: { id },
+      data,
+    });
+    return this.mapRow(row);
+  }
+
+  async eliminar(id: string): Promise<void> {
+    await this.prisma.negocio.delete({
+      where: { id },
+    });
   }
 }

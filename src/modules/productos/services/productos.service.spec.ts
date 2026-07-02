@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from "@nestjs/testing";
 import { ProductosService } from "./productos.service";
 import { PRODUCTOS_REPOSITORY } from "../repositories/productos.repository.interface";
@@ -7,7 +8,7 @@ import { ALMACENAMIENTO_ADAPTER } from "../../../core/adapters/almacenamiento.ad
 
 describe("ProductosService", () => {
   let service: ProductosService;
-  let repositoryMock: { findCercanos: jest.Mock };
+  let repositoryMock: any;
   let redisServiceMock: { publish: jest.Mock };
   let almacenamientoAdapterMock: { subir: jest.Mock };
 
@@ -29,6 +30,10 @@ describe("ProductosService", () => {
         nextCursor: "prod-123",
         total: 1,
       }),
+      findById: jest.fn(),
+      actualizar: jest.fn(),
+      eliminar: jest.fn(),
+      buscar: jest.fn(),
     };
 
     redisServiceMock = {
@@ -150,6 +155,78 @@ describe("ProductosService", () => {
           response: {
             error: "precio_invalido",
             message: "El precio de oferta debe ser menor al precio original",
+          },
+        })
+      );
+    });
+  });
+
+  describe("findById con BOLA", () => {
+    it("debe retornar el producto si no se requiere validacion de negocioId", async () => {
+      const mockProduct = { id: "p1", negocioId: "n1", nombre: "Prod 1" };
+      repositoryMock.findById.mockResolvedValue(mockProduct);
+
+      const result = await service.findById("p1");
+      expect(result).toEqual(mockProduct);
+    });
+
+    it("debe retornar el producto si el negocioId coincide con el del JWT", async () => {
+      const mockProduct = { id: "p1", negocioId: "n1", nombre: "Prod 1" };
+      repositoryMock.findById.mockResolvedValue(mockProduct);
+
+      const result = await service.findById("p1", "n1");
+      expect(result).toEqual(mockProduct);
+    });
+
+    it("debe lanzar NotFoundException si el producto no existe", async () => {
+      repositoryMock.findById.mockResolvedValue(null);
+
+      await expect(service.findById("p1", "n1")).rejects.toThrow(
+        expect.objectContaining({
+          response: {
+            error: "producto_no_encontrado",
+            message: "El producto con ID p1 no existe",
+          },
+        })
+      );
+    });
+
+    it("debe lanzar ForbiddenException si el producto no pertenece al negocio del JWT", async () => {
+      const mockProduct = { id: "p1", negocioId: "n2", nombre: "Prod 1" };
+      repositoryMock.findById.mockResolvedValue(mockProduct);
+
+      await expect(service.findById("p1", "n1")).rejects.toThrow(
+        expect.objectContaining({
+          response: {
+            error: "acceso_denegado",
+          },
+        })
+      );
+    });
+  });
+
+  describe("actualizar y eliminar con BOLA", () => {
+    it("actualizar debe lanzar ForbiddenException si no pertenece al negocio", async () => {
+      const mockProduct = { id: "p1", negocioId: "n2", nombre: "Prod 1" };
+      repositoryMock.findById.mockResolvedValue(mockProduct);
+
+      await expect(service.actualizar("p1", "n1", {})).rejects.toThrow(
+        expect.objectContaining({
+          response: {
+            error: "acceso_denegado",
+          },
+        })
+      );
+    });
+
+    it("eliminar debe lanzar ForbiddenException si no pertenece al negocio", async () => {
+      const mockProduct = { id: "p1", negocioId: "n2", nombre: "Prod 1" };
+      repositoryMock.findById.mockResolvedValue(mockProduct);
+
+      await expect(service.eliminar("p1", "n1")).rejects.toThrow(
+        expect.objectContaining({
+          response: {
+            error: "acceso_denegado",
           },
         })
       );

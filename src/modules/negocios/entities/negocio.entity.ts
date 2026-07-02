@@ -43,6 +43,13 @@ export class NegocioEntity {
   })
   creadoEn: Date;
 
+  @ApiProperty({
+    example: 'usr-neg-001',
+    description: 'ID del usuario propietario del negocio',
+    required: false,
+  })
+  usuarioId?: string;
+
   constructor(partial: Partial<NegocioEntity>) {
     Object.assign(this, partial);
   }

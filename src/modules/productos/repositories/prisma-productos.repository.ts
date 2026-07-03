@@ -165,6 +165,7 @@ export class PrismaProductosRepository implements IProductosRepository {
       SELECT
         p.id,
         p.nombre,
+        CAST(p."precioOriginal" AS float) AS "precioOriginal",
         CAST(p."precioOferta" AS float) AS "precioOferta",
         p."fechaCaducidad",
         n.nombre AS "negocioNombre",
@@ -243,6 +244,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     interface RawDataRow {
       id: string;
       nombre: string;
+      precioOriginal: number | string;
       precioOferta: number | string;
       fechaCaducidad: Date;
       distanciaKm: number | string;
@@ -276,6 +278,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     const data: ProductoCercanoRaw[] = rawData.map((row) => ({
       id: row.id,
       nombre: row.nombre,
+      precioOriginal: parseFloat(String(row.precioOriginal)),
       precioOferta: parseFloat(String(row.precioOferta)),
       fechaCaducidad: row.fechaCaducidad,
       distanciaKm: parseFloat(String(row.distanciaKm)),

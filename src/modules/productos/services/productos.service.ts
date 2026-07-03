@@ -189,6 +189,7 @@ export class ProductosService {
         new ProductoEntity({
           id: item.id,
           nombre: item.nombre,
+          precioOriginal: item.precioOriginal,
           precioOferta: item.precioOferta,
           fechaCaducidad: item.fechaCaducidad,
           distanciaKm: item.distanciaKm,

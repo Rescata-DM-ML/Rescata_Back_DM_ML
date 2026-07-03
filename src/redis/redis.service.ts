@@ -14,6 +14,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.subscriber = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
     });
+
+    this.publisher.on("error", (error) => {
+      console.error("Redis Publisher error:", error.message);
+    });
+
+    this.subscriber.on("error", (error) => {
+      console.error("Redis Subscriber error:", error.message);
+    });
   }
 
   async onModuleInit() {

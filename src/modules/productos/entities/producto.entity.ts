@@ -2,8 +2,14 @@ import { Exclude, Expose, Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class NegocioInfoEntity {
+  @ApiProperty({ example: "a3b4c5d6-e7f8-9012-3456-7890abcdef12", description: "ID del negocio" })
+  id: string;
+
   @ApiProperty({ example: "Panadería El Sol", description: "Nombre del negocio" })
   nombre: string;
+
+  @ApiProperty({ example: "Av. Juárez 123", description: "Dirección del negocio" })
+  direccion: string;
 
   @ApiProperty({ example: 4.5, description: "Calificación promedio del negocio" })
   calificacionPromedio: number;
@@ -64,6 +70,10 @@ export class ProductoEntity {
   @Type(() => NegocioInfoEntity)
   @ApiProperty({ type: NegocioInfoEntity, description: "Información resumida del negocio", required: false })
   negocio?: NegocioInfoEntity;
+
+  @Expose()
+  @ApiProperty({ example: [{ url: "https://r2.dev/imagen.jpg" }], description: "Galería de imágenes del producto", required: false })
+  imagenes?: { url: string }[];
 
   constructor(partial: Partial<ProductoEntity>) {
     Object.assign(this, partial);

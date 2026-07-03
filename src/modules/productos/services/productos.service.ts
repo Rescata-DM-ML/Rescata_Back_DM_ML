@@ -206,4 +206,8 @@ export class ProductosService {
       total: resultado.total,
     };
   }
+
+  async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {
+    return this.repository.findByNegocio(negocioId);
+  }
 }

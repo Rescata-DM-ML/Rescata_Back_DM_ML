@@ -68,9 +68,14 @@ export class ProductosController {
   }
 
   @Get()
-  @ApiOperation({ summary: "Obtener todos los productos (público)" })
+  @ApiOperation({ summary: "Obtener todos los productos u obtener por negocio (público)" })
   @ApiResponse({ status: 200, type: [ProductoEntity] })
-  async getProductos(): Promise<ProductoEntity[]> {
+  async getProductos(
+    @Query("negocioId") negocioId?: string
+  ): Promise<ProductoEntity[]> {
+    if (negocioId) {
+      return this.productosService.findByNegocio(negocioId);
+    }
     return this.productosService.findAll();
   }
 

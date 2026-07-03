@@ -38,6 +38,12 @@ export class NegocioEntity {
   longitud: number;
 
   @ApiProperty({
+    example: 4.5,
+    description: 'Calificación promedio del negocio',
+  })
+  calificacionPromedio?: number;
+
+  @ApiProperty({
     example: '2026-06-30T10:00:00.000Z',
     description: 'Fecha de registro del negocio',
   })

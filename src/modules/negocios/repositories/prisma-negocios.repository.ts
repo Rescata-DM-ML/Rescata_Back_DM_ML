@@ -18,6 +18,7 @@ export class PrismaNegociosRepository implements INegociosRepository {
       categoria: row.categoria,
       latitud: Number(row.latitud),
       longitud: Number(row.longitud),
+      calificacionPromedio: row.calificacionPromedio !== undefined ? Number(row.calificacionPromedio) : 0,
       creadoEn: row.creadoEn,
       usuarioId: row.usuarioId,
     };

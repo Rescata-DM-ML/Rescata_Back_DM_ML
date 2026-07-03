@@ -10,9 +10,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
     this.publisher = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
+      lazyConnect: true,
     });
     this.subscriber = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
+      lazyConnect: true,
     });
 
     this.publisher.on("error", (error) => {
@@ -21,6 +23,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     this.subscriber.on("error", (error) => {
       console.error("Redis Subscriber error:", error.message);
+    });
+
+    this.publisher.connect().catch((error) => {
+      console.error("Redis Publisher initial connection failed:", error.message);
+    });
+
+    this.subscriber.connect().catch((error) => {
+      console.error("Redis Subscriber initial connection failed:", error.message);
     });
   }
 

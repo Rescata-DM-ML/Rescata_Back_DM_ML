@@ -15,9 +15,14 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {
-    this.redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+    this.redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+      lazyConnect: true,
+    });
     this.redisClient.on("error", (err) => {
       console.error("Redis connection error:", err);
+    });
+    this.redisClient.connect().catch((err) => {
+      console.error("Redis initial connection failed:", err.message);
     });
   }
 

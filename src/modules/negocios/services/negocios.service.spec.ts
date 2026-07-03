@@ -3,7 +3,7 @@ import { NegociosService } from "./negocios.service";
 import { NEGOCIOS_REPOSITORY } from "../repositories/negocios.repository.interface";
 import { MAPA_ADAPTER } from "../../../core/adapters/mapa.adapter.interface";
 import { RedisService } from "../../../redis/redis.service";
-import { ConflictException } from "@nestjs/common";
+import { ConflictException, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { CategoriaNegocios } from "../../../../generated/prisma";
 
 describe("NegociosService", () => {
@@ -14,6 +14,9 @@ describe("NegociosService", () => {
     existePorUsuarioYNombre: jest.fn(),
     findById: jest.fn(),
     findAll: jest.fn(),
+    actualizar: jest.fn(),
+    eliminar: jest.fn(),
+    buscar: jest.fn(),
   };
 
   const mockMapaAdapter = {
@@ -116,6 +119,56 @@ describe("NegociosService", () => {
       const result = await service.crear(userId, dto);
       expect(result.id).toBe("neg-123");
       expect(mockRedisService.publish).toHaveBeenCalled();
+    });
+  });
+
+  describe("actualizar y eliminar con BOLA", () => {
+    const mockNegocio = {
+      id: "neg-123",
+      usuarioId: "user-123",
+      nombre: "Negocio Test",
+    };
+
+    describe("actualizar", () => {
+      it("debe lanzar NotFoundException si el negocio no existe", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(null);
+        await expect(service.actualizar("neg-123", "user-123", {})).rejects.toThrow(NotFoundException);
+      });
+
+      it("debe lanzar ForbiddenException si el negocio no pertenece al usuario", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(mockNegocio);
+        await expect(service.actualizar("neg-123", "user-other", {})).rejects.toThrow(ForbiddenException);
+      });
+
+      it("debe actualizar si el negocio existe y pertenece al usuario", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(mockNegocio);
+        mockNegociosRepository.actualizar.mockResolvedValue({
+          ...mockNegocio,
+          nombre: "Nuevo Nombre",
+        });
+
+        const res = await service.actualizar("neg-123", "user-123", { nombre: "Nuevo Nombre" });
+        expect(res.nombre).toBe("Nuevo Nombre");
+      });
+    });
+
+    describe("eliminar", () => {
+      it("debe lanzar NotFoundException si el negocio no existe", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(null);
+        await expect(service.eliminar("neg-123", "user-123")).rejects.toThrow(NotFoundException);
+      });
+
+      it("debe lanzar ForbiddenException si el negocio no pertenece al usuario", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(mockNegocio);
+        await expect(service.eliminar("neg-123", "user-other")).rejects.toThrow(ForbiddenException);
+      });
+
+      it("debe eliminar si el negocio existe y pertenece al usuario", async () => {
+        mockNegociosRepository.findById.mockResolvedValue(mockNegocio);
+        mockNegociosRepository.eliminar.mockResolvedValue(undefined);
+
+        await expect(service.eliminar("neg-123", "user-123")).resolves.not.toThrow();
+      });
     });
   });
 });

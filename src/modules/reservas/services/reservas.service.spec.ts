@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Test, TestingModule } from "@nestjs/testing";
+import { NotFoundException, ForbiddenException } from "@nestjs/common";
 import { ReservasService, JwtPayload } from "./reservas.service";
 import {
   RESERVAS_REPOSITORY,
@@ -18,6 +20,7 @@ describe("ReservasService", () => {
   const mockRepository = {
     findExpiradas: jest.fn(),
     updateEstado: jest.fn(),
+    findById: jest.fn(),
   };
 
   const mockPrismaService = {
@@ -46,9 +49,9 @@ describe("ReservasService", () => {
     }).compile();
 
     service = module.get<ReservasService>(ReservasService);
-    prisma = module.get<PrismaService>(PrismaService);
-    redisService = module.get<RedisService>(RedisService);
-    crearReservaUseCase = module.get<CrearReservaUseCase>(CrearReservaUseCase);
+    prisma = module.get<any>(PrismaService);
+    redisService = module.get<any>(RedisService);
+    crearReservaUseCase = module.get<any>(CrearReservaUseCase);
   });
 
   afterEach(() => {
@@ -166,6 +169,59 @@ describe("ReservasService", () => {
       await service.handleCronReservasExpiradas();
 
       expect(mockRepository.findExpiradas).toHaveBeenCalled();
+    });
+  });
+
+  describe("findById y cancelar con BOLA", () => {
+    const mockReserva: any = {
+      id: "res-123",
+      consumidorId: "cons-123",
+      producto: {
+        id: "prod-123",
+        estado: "apartado",
+      },
+    };
+
+    describe("findById", () => {
+      it("debe retornar la reserva si existe y pertenece al usuario", async () => {
+        mockRepository.findById.mockResolvedValue(mockReserva);
+        const res = await service.findById("res-123", "cons-123");
+        expect(res.id).toBe("res-123");
+      });
+
+      it("debe lanzar NotFoundException si la reserva no existe", async () => {
+        mockRepository.findById.mockResolvedValue(null);
+        await expect(service.findById("res-123", "cons-123")).rejects.toThrow(NotFoundException);
+      });
+
+      it("debe lanzar ForbiddenException si la reserva no pertenece al usuario del JWT", async () => {
+        mockRepository.findById.mockResolvedValue(mockReserva);
+        await expect(service.findById("res-123", "cons-other")).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe("cancelar", () => {
+      it("debe lanzar NotFoundException si no existe", async () => {
+        mockRepository.findById.mockResolvedValue(null);
+        await expect(service.cancelar("res-123", "cons-123")).rejects.toThrow(NotFoundException);
+      });
+
+      it("debe lanzar ForbiddenException si no pertenece al usuario", async () => {
+        mockRepository.findById.mockResolvedValue(mockReserva);
+        await expect(service.cancelar("res-123", "cons-other")).rejects.toThrow(ForbiddenException);
+      });
+
+      it("debe cancelar y liberar stock si pertenece al usuario", async () => {
+        mockRepository.findById.mockResolvedValue(mockReserva);
+        mockRepository.updateEstado.mockResolvedValue({
+          ...mockReserva,
+          estado: "cancelado",
+        });
+
+        const res = await service.cancelar("res-123", "cons-123");
+        expect(res.estado).toBe("cancelado");
+        expect(mockPrismaService.producto.update).toHaveBeenCalled();
+      });
     });
   });
 });

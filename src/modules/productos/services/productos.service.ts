@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Inject,
   Injectable,
@@ -120,7 +121,7 @@ export class ProductosService {
     return this.repository.findAll();
   }
 
-  async findById(id: string): Promise<ProductoEntity> {
+  async findById(id: string, negocioId?: string): Promise<ProductoEntity> {
     const producto = await this.repository.findById(id);
     if (!producto) {
       throw new NotFoundException({
@@ -128,7 +129,46 @@ export class ProductosService {
         message: `El producto con ID ${id} no existe`,
       });
     }
+    if (negocioId && producto.negocioId !== negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
     return producto;
+  }
+
+  async actualizar(id: string, negocioId: string, dto: any): Promise<ProductoEntity> {
+    const producto = await this.repository.findById(id);
+    if (!producto) {
+      throw new NotFoundException({
+        error: "producto_no_encontrado",
+      });
+    }
+    if (producto.negocioId !== negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+    return this.repository.actualizar(id, dto);
+  }
+
+  async eliminar(id: string, negocioId: string): Promise<void> {
+    const producto = await this.repository.findById(id);
+    if (!producto) {
+      throw new NotFoundException({
+        error: "producto_no_encontrado",
+      });
+    }
+    if (producto.negocioId !== negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+    await this.repository.eliminar(id);
+  }
+
+  async buscar(filtro: string): Promise<ProductoEntity[]> {
+    return this.repository.buscar(filtro);
   }
 
   async findCercanos(query: CercanosQueryDto): Promise<{

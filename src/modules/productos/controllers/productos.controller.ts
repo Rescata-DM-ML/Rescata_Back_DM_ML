@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Controller,
   Get,
@@ -12,6 +13,7 @@ import {
   UseInterceptors,
   HttpCode,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { ProductosService } from "../services/productos.service";
@@ -72,12 +74,26 @@ export class ProductosController {
     return this.productosService.findAll();
   }
 
+  @Get("buscar")
+  async buscar(@Query("q") q: string) {
+    if (!q || q.trim().length < 2) {
+      throw new BadRequestException({ error: "query_muy_corta" });
+    }
+    return this.productosService.buscar(q.trim());
+  }
+
   @Get(":id")
-  @ApiOperation({ summary: "Obtener un producto por ID (público)" })
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: "Obtener un producto por ID (protegido)" })
   @ApiResponse({ status: 200, type: ProductoEntity })
   @ApiResponse({ status: 404, description: "Producto no encontrado" })
-  async getProductoById(@Param("id") id: string): Promise<ProductoEntity> {
-    return this.productosService.findById(id);
+  @ApiResponse({ status: 403, description: "Acceso denegado" })
+  async getProductoById(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload
+  ): Promise<ProductoEntity> {
+    const negocioId = user.rol === "negocio" ? user.negocioId : undefined;
+    return this.productosService.findById(id, negocioId);
   }
 
   @Post()
@@ -126,14 +142,34 @@ export class ProductosController {
   @Put(":id")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
-  async actualizarProducto(@Param("id") id: string) {
-    return { message: `PUT /productos/${id} - negocio skeleton` };
+  async actualizarProducto(
+    @Param("id") id: string,
+    @Body() dto: any,
+    @CurrentUser() user: JwtPayload
+  ) {
+    if (!user.negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+        message: "El usuario no tiene un negocio registrado",
+      });
+    }
+    return this.productosService.actualizar(id, user.negocioId, dto);
   }
 
   @Delete(":id")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
-  async eliminarProducto(@Param("id") id: string) {
-    return { message: `DELETE /productos/${id} - negocio skeleton` };
+  async eliminarProducto(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload
+  ) {
+    if (!user.negocioId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+        message: "El usuario no tiene un negocio registrado",
+      });
+    }
+    await this.productosService.eliminar(id, user.negocioId);
+    return { success: true };
   }
 }

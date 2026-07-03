@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ProductoEntity } from "../entities/producto.entity";
 
 export type ProductoCercanoRaw = {
@@ -39,6 +40,9 @@ export interface IProductosRepository {
   findById(id: string): Promise<ProductoEntity | null>;
   findAll(): Promise<ProductoEntity[]>;
   findByNegocio(negocioId: string): Promise<ProductoEntity[]>;
+  buscar(filtro: string): Promise<ProductoEntity[]>;
+  actualizar(id: string, data: any): Promise<ProductoEntity>;
+  eliminar(id: string): Promise<void>;
   contarImagenes(productoId: string): Promise<number>;
   agregarImagen(
     productoId: string,

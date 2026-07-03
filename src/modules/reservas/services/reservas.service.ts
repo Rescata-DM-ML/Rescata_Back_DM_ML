@@ -109,6 +109,66 @@ export class ReservasService {
     return new ReservaEntity(confirmada);
   }
 
+  async findById(id: string, userId: string): Promise<ReservaEntity> {
+    const reserva = await this.repository.findById(id);
+    if (!reserva) {
+      throw new NotFoundException({
+        error: "reserva_no_encontrada",
+      });
+    }
+    if (reserva.consumidorId !== userId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+    return new ReservaEntity(reserva);
+  }
+
+  async cancelar(id: string, userId: string): Promise<ReservaEntity> {
+    const reserva = await this.repository.findById(id);
+    if (!reserva) {
+      throw new NotFoundException({
+        error: "reserva_no_encontrada",
+      });
+    }
+    if (reserva.consumidorId !== userId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+
+    const cancelada = await this.repository.updateEstado(id, "cancelado");
+
+    if (reserva.producto.estado === "apartado") {
+      await this.prisma.producto.update({
+        where: { id: reserva.producto.id },
+        data: {
+          cantidadDisponible: { increment: 1 },
+          estado: "disponible",
+        },
+      });
+    } else {
+      await this.prisma.producto.update({
+        where: { id: reserva.producto.id },
+        data: {
+          cantidadDisponible: { increment: 1 },
+        },
+      });
+    }
+
+    try {
+      await this.redisService.publish("reserva.cancelada", {
+        reservaId: cancelada.id,
+        productoId: cancelada.productoId,
+        consumidorId: cancelada.consumidorId,
+      });
+    } catch (error) {
+      console.error("Error al publicar en Redis:", error);
+    }
+
+    return new ReservaEntity(cancelada);
+  }
+
   async cancelarReservasExpiradas(): Promise<void> {
     const expiradas = await this.repository.findExpiradas();
 

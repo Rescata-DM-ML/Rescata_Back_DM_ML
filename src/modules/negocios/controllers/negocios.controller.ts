@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Param, UseGuards, Body, HttpCode, HttpStatus } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Controller, Get, Post, Put, Delete, Param, UseGuards, Body, HttpCode, HttpStatus, BadRequestException, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '../../../core/guards/auth.guard';
 import { RolesGuard } from '../../../core/guards/roles.guard';
@@ -18,6 +19,14 @@ export class NegociosController {
   @ApiResponse({ status: 200, type: [NegocioEntity] })
   async getNegocios(): Promise<NegocioEntity[]> {
     return this.negociosService.findAll();
+  }
+
+  @Get('buscar')
+  async buscar(@Query('q') q: string) {
+    if (!q || q.trim().length < 2) {
+      throw new BadRequestException({ error: 'query_muy_corta' });
+    }
+    return this.negociosService.buscar(q.trim());
   }
 
   @Get(':id')
@@ -47,14 +56,22 @@ export class NegociosController {
   @Put(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('negocio')
-  async actualizarNegocio(@Param('id') id: string) {
-    return { message: `PUT /negocios/${id} - negocio skeleton` };
+  async actualizarNegocio(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @CurrentUser() user: { sub: string }
+  ) {
+    return this.negociosService.actualizar(id, user.sub, dto);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('negocio')
-  async eliminarNegocio(@Param('id') id: string) {
-    return { message: `DELETE /negocios/${id} - negocio skeleton` };
+  async eliminarNegocio(
+    @Param('id') id: string,
+    @CurrentUser() user: { sub: string }
+  ) {
+    await this.negociosService.eliminar(id, user.sub);
+    return { success: true };
   }
 }

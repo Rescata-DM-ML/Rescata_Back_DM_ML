@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../core/prisma.service";
 import { IProductosRepository, ProductoCercanoRaw, ResultadoCercanos } from "./productos.repository.interface";
@@ -7,6 +8,21 @@ import { EstadoProducto } from "../../../../generated/prisma";
 @Injectable()
 export class PrismaProductosRepository implements IProductosRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private mapRow(row: any): ProductoEntity {
+    return new ProductoEntity({
+      id: row.id,
+      nombre: row.nombre,
+      descripcion: row.descripcion || "",
+      precioOriginal: Number(row.precioOriginal),
+      precioOferta: Number(row.precioOferta),
+      cantidadDisponible: row.cantidadDisponible,
+      fechaCaducidad: row.fechaCaducidad,
+      negocioId: row.negocioId,
+      estado: row.estado,
+      creadoEn: row.creadoEn,
+    });
+  }
 
   async crear(data: {
     nombre: string;
@@ -31,18 +47,7 @@ export class PrismaProductosRepository implements IProductosRepository {
       },
     });
 
-    return new ProductoEntity({
-      id: created.id,
-      nombre: created.nombre,
-      descripcion: created.descripcion || "",
-      precioOriginal: Number(created.precioOriginal),
-      precioOferta: Number(created.precioOferta),
-      cantidadDisponible: created.cantidadDisponible,
-      fechaCaducidad: created.fechaCaducidad,
-      negocioId: created.negocioId,
-      estado: created.estado,
-      creadoEn: created.creadoEn,
-    });
+    return this.mapRow(created);
   }
 
   async findById(id: string): Promise<ProductoEntity | null> {
@@ -51,37 +56,38 @@ export class PrismaProductosRepository implements IProductosRepository {
     });
     if (!row) return null;
 
-    return new ProductoEntity({
-      id: row.id,
-      nombre: row.nombre,
-      descripcion: row.descripcion || "",
-      precioOriginal: Number(row.precioOriginal),
-      precioOferta: Number(row.precioOferta),
-      cantidadDisponible: row.cantidadDisponible,
-      fechaCaducidad: row.fechaCaducidad,
-      negocioId: row.negocioId,
-      estado: row.estado,
-      creadoEn: row.creadoEn,
-    });
+    return this.mapRow(row);
   }
 
   async findAll(): Promise<ProductoEntity[]> {
     const rows = await this.prisma.producto.findMany();
-    return rows.map(
-      (row) =>
-        new ProductoEntity({
-          id: row.id,
-          nombre: row.nombre,
-          descripcion: row.descripcion || "",
-          precioOriginal: Number(row.precioOriginal),
-          precioOferta: Number(row.precioOferta),
-          cantidadDisponible: row.cantidadDisponible,
-          fechaCaducidad: row.fechaCaducidad,
-          negocioId: row.negocioId,
-          estado: row.estado,
-          creadoEn: row.creadoEn,
-        })
-    );
+    return rows.map((row) => this.mapRow(row));
+  }
+
+  async buscar(filtro: string): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany({
+      where: {
+        nombre: {
+          contains: filtro,
+          mode: 'insensitive'
+        }
+      }
+    });
+    return rows.map(row => this.mapRow(row));
+  }
+
+  async actualizar(id: string, data: any): Promise<ProductoEntity> {
+    const row = await this.prisma.producto.update({
+      where: { id },
+      data,
+    });
+    return this.mapRow(row);
+  }
+
+  async eliminar(id: string): Promise<void> {
+    await this.prisma.producto.delete({
+      where: { id },
+    });
   }
 
   async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {

@@ -3,16 +3,16 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class NegocioInfoEntity {
   @Expose()
-  @ApiProperty({ example: "a3b4c5d6-e7f8-9012-3456-7890abcdef12", description: "ID del negocio" })
-  id: string;
+  @ApiProperty({ example: "a3b4c5d6-e7f8-9012-3456-7890abcdef12", description: "ID del negocio", required: false })
+  id?: string;
 
   @Expose()
   @ApiProperty({ example: "Panadería El Sol", description: "Nombre del negocio" })
   nombre: string;
 
   @Expose()
-  @ApiProperty({ example: "Av. Juárez 123", description: "Dirección del negocio" })
-  direccion: string;
+  @ApiProperty({ example: "Av. Juárez 123", description: "Dirección del negocio", required: false })
+  direccion?: string;
 
   @Expose()
   @ApiProperty({ example: 4.5, description: "Calificación promedio del negocio" })

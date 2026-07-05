@@ -37,7 +37,7 @@ export interface IProductosRepository {
     fechaCaducidad: Date;
     negocioId: string;
   }): Promise<ProductoEntity>;
-  
+
   findById(id: string): Promise<ProductoEntity | null>;
   findAll(): Promise<ProductoEntity[]>;
   findByNegocio(negocioId: string): Promise<ProductoEntity[]>;
@@ -50,7 +50,7 @@ export interface IProductosRepository {
     url: string,
     nombreUuid?: string,
     mimeType?: string,
-    tamanioBytes?: number
+    tamanioBytes?: number,
   ): Promise<void>;
 }
 

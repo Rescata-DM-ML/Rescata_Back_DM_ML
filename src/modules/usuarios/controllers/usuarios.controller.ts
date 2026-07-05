@@ -1,4 +1,14 @@
-import { Controller, Get, Put, Delete, Post, Body, UseGuards, HttpCode, HttpStatus } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Put,
+  Delete,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from "@nestjs/common";
 import { AuthGuard } from "../../../core/guards/auth.guard";
 import { CurrentUser } from "../../../core/decorators/current-user.decorator";
 import { UsuariosService } from "../services/usuarios.service";
@@ -15,10 +25,7 @@ export class UsuariosController {
   }
 
   @Put("me")
-  async updateMe(
-    @CurrentUser() user: { sub: string },
-    @Body() dto: UpdateUsuarioDto,
-  ) {
+  async updateMe(@CurrentUser() user: { sub: string }, @Body() dto: UpdateUsuarioDto) {
     return this.usuariosService.updateMiPerfil(user.sub, dto);
   }
 

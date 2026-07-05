@@ -1,20 +1,5 @@
-import {
-  Body,
-  Controller,
-  Post,
-  Get,
-  Put,
-  Param,
-  UseGuards,
-  Patch,
-} from "@nestjs/common";
-import {
-  ApiBody,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-  ApiParam,
-} from "@nestjs/swagger";
+import { Body, Controller, Post, Get, Put, Param, UseGuards, Patch } from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
 import { AuthGuard } from "../../../core/guards/auth.guard";
 import { RolesGuard } from "../../../core/guards/roles.guard";
 import { Roles } from "../../../core/decorators/roles.decorator.decorator";
@@ -46,17 +31,15 @@ export class ReservasController {
   @ApiResponse({ status: 404, description: "Producto no encontrado" })
   @ApiResponse({
     status: 409,
-    description:
-      "Producto no disponible, sin stock o reserva duplicada",
+    description: "Producto no disponible, sin stock o reserva duplicada",
   })
   @ApiResponse({
     status: 403,
-    description:
-      "No puedes apartar tu propio producto o rol incorrecto",
+    description: "No puedes apartar tu propio producto o rol incorrecto",
   })
   async crearReserva(
     @Body() dto: CreateReservaDto,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
     // Nota: El negocioId del consumidor se extrae de forma segura a través del JWT payload (user.negocioId)
     // para prevenir problemas de propiedad y evitar vulnerabilidades de Mass Assignment (no viene en el Body).
@@ -85,7 +68,7 @@ export class ReservasController {
   @Roles("consumidor")
   async getReservaById(
     @Param("id") id: string,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
     return this.reservasService.findById(id, user.sub);
   }
@@ -111,22 +94,17 @@ export class ReservasController {
   @ApiResponse({ status: 404, description: "Reserva no encontrada" })
   @ApiResponse({
     status: 403,
-    description:
-      "Reserva no pertenece a tu negocio o cuenta sin negocio registrado",
+    description: "Reserva no pertenece a tu negocio o cuenta sin negocio registrado",
   })
   @ApiResponse({
     status: 400,
-    description:
-      "Reserva no confirmable. Estado actual: expirado o cancelado",
+    description: "Reserva no confirmable. Estado actual: expirado o cancelado",
   })
   async confirmarRecoleccion(
     @Param("id") reservaId: string,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
-    return this.reservasService.confirmarRecoleccion(
-      reservaId,
-      user.negocioId
-    );
+    return this.reservasService.confirmarRecoleccion(reservaId, user.negocioId);
   }
 
   @Put(":id/cancelar")
@@ -134,7 +112,7 @@ export class ReservasController {
   @Roles("consumidor", "negocio")
   async cancelarReserva(
     @Param("id") id: string,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
     return this.reservasService.cancelar(id, user.sub);
   }

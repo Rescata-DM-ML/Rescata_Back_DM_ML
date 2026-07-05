@@ -13,7 +13,7 @@ import { Prisma } from "../../../../generated/prisma";
 export class CrearReservaUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
   ) {}
 
   async execute(
@@ -23,7 +23,7 @@ export class CrearReservaUseCase {
     cantidad: number = 1
   ): Promise<ReservaEntity> {
     try {
-      const reserva = await this.prisma.$transaction(async (tx) => {
+      const reserva = await this.prisma.$transaction(async tx => {
         // PASO 1 — Verificar que producto existe
         const producto = await tx.producto.findUnique({
           where: { id: productoId },
@@ -121,17 +121,14 @@ export class CrearReservaUseCase {
       } catch (error) {
         console.error(
           "Error publicando reserva.creada en Redis:",
-          error instanceof Error ? error.message : String(error)
+          error instanceof Error ? error.message : String(error),
         );
       }
 
       // PASO 9 — Retornar
       return new ReservaEntity(reserva);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new ConflictException({
           error: "reserva_duplicada",
           message: "Conflicto al crear la reserva",

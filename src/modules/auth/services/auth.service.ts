@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, BadRequestException, ConflictException, Inject } from "@nestjs/common";
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  ConflictException,
+  Inject,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Cron } from "@nestjs/schedule";
 import * as bcrypt from "bcrypt";
@@ -20,13 +26,22 @@ export class AuthService {
     @Inject(MAPA_ADAPTER)
     private readonly mapaAdapter: IMapaAdapter,
   ) {
-    this.redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+    this.redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+      lazyConnect: true,
+    });
     this.redisClient.on("error", (err) => {
       console.error("Redis connection error:", err);
     });
+    this.redisClient.connect().catch((err) => {
+      console.error("Redis initial connection failed:", err.message);
+    });
   }
 
-  async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string; negocio?: any } }> {
+  async login(loginDto: LoginDto): Promise<{
+    token: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user: { id: string; nombre: string; correo: string; rol: string; negocio?: any };
+  }> {
     // Nota: Las excepciones lanzadas aquí son interceptadas por el HttpExceptionFilter global
     // para registrar un log de auditoría genérico como "autenticacion_fallida" sin exponer detalles
     // sobre si el correo existe o no en la base de datos (mitigando enumeración de cuentas).
@@ -43,10 +58,7 @@ export class AuthService {
       throw new UnauthorizedException({ error: "cuenta_cancelada" });
     }
 
-    const contrasenaValida = await bcrypt.compare(
-      loginDto.contrasena,
-      usuario.passwordHash,
-    );
+    const contrasenaValida = await bcrypt.compare(loginDto.contrasena, usuario.passwordHash);
 
     if (!contrasenaValida) {
       throw new UnauthorizedException({ error: "credenciales_invalidas" });
@@ -68,14 +80,16 @@ export class AuthService {
         nombre: usuario.nombre,
         correo: usuario.correo,
         rol: usuario.rol,
-        negocio: usuario.negocio ? {
-          id: usuario.negocio.id,
-          nombre: usuario.negocio.nombre,
-          direccion: usuario.negocio.direccion,
-          categoria: usuario.negocio.categoria,
-          latitud: usuario.negocio.latitud,
-          longitud: usuario.negocio.longitud,
-        } : null,
+        negocio: usuario.negocio
+          ? {
+              id: usuario.negocio.id,
+              nombre: usuario.negocio.nombre,
+              direccion: usuario.negocio.direccion,
+              categoria: usuario.negocio.categoria,
+              latitud: usuario.negocio.latitud,
+              longitud: usuario.negocio.longitud,
+            }
+          : null,
       },
     };
   }
@@ -112,16 +126,18 @@ export class AuthService {
     });
 
     // Publish registration event to Redis Pub/Sub asynchronously (non-blocking)
-    this.redisClient.publish(
-      "user.registered",
-      JSON.stringify({
-        userId: usuario.id,
-        correo: usuario.correo,
-        timestamp: new Date().toISOString(),
-      }),
-    ).catch((redisError) => {
-      console.error("Failed to publish user.registered event to Redis:", redisError);
-    });
+    this.redisClient
+      .publish(
+        "user.registered",
+        JSON.stringify({
+          userId: usuario.id,
+          correo: usuario.correo,
+          timestamp: new Date().toISOString(),
+        }),
+      )
+      .catch(redisError => {
+        console.error("Failed to publish user.registered event to Redis:", redisError);
+      });
 
     return {
       id: usuario.id,
@@ -172,7 +188,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(contrasena, 12);
 
     // 2. Transacción atómica
-    const { usuario, negocio } = await this.prisma.$transaction(async (tx) => {
+    const { usuario, negocio } = await this.prisma.$transaction(async tx => {
       const user = await tx.usuario.create({
         data: {
           nombre,
@@ -199,28 +215,32 @@ export class AuthService {
     });
 
     // 3. Publicar eventos a Redis
-    this.redisClient.publish(
-      "user.registered",
-      JSON.stringify({
-        userId: usuario.id,
-        correo: usuario.correo,
-        timestamp: new Date().toISOString(),
-      }),
-    ).catch((redisError) => {
-      console.error("Failed to publish user.registered event to Redis:", redisError);
-    });
+    this.redisClient
+      .publish(
+        "user.registered",
+        JSON.stringify({
+          userId: usuario.id,
+          correo: usuario.correo,
+          timestamp: new Date().toISOString(),
+        }),
+      )
+      .catch(redisError => {
+        console.error("Failed to publish user.registered event to Redis:", redisError);
+      });
 
-    this.redisClient.publish(
-      "negocio.creado",
-      JSON.stringify({
-        negocioId: negocio.id,
-        userId: usuario.id,
-        nombre: negocio.nombre,
-        categoria: negocio.categoria,
-      }),
-    ).catch((redisError) => {
-      console.error("Failed to publish negocio.creado event to Redis:", redisError);
-    });
+    this.redisClient
+      .publish(
+        "negocio.creado",
+        JSON.stringify({
+          negocioId: negocio.id,
+          userId: usuario.id,
+          nombre: negocio.nombre,
+          categoria: negocio.categoria,
+        }),
+      )
+      .catch(redisError => {
+        console.error("Failed to publish negocio.creado event to Redis:", redisError);
+      });
 
     // 4. Iniciar sesión automáticamente (firmar JWT) y retornar token + user info
     const payload = {

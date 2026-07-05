@@ -1,9 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../core/prisma.service";
-import {
-  IReservasRepository,
-  ReservaConRelaciones,
-} from "./reservas.repository.interface";
+import { IReservasRepository, ReservaConRelaciones } from "./reservas.repository.interface";
 import type { EstadoReserva } from "../../../../generated/prisma";
 
 const includeRelaciones = {
@@ -66,9 +63,7 @@ export class PrismaReservasRepository implements IReservasRepository {
         estado: row.producto.estado,
         cantidadDisponible: row.producto.cantidadDisponible,
         negocioId: row.producto.negocioId,
-        kgSalvados: row.producto.kgSalvados
-          ? Number(row.producto.kgSalvados)
-          : null,
+        kgSalvados: row.producto.kgSalvados ? Number(row.producto.kgSalvados) : null,
       },
       consumidor: { id: row.consumidor.id, nombre: row.consumidor.nombre },
       negocio: { id: row.negocio.id, nombre: row.negocio.nombre },
@@ -87,7 +82,7 @@ export class PrismaReservasRepository implements IReservasRepository {
 
   async findActivaPorConsumidorYProducto(
     consumidorId: string,
-    productoId: string
+    productoId: string,
   ): Promise<ReservaConRelaciones | null> {
     const result = (await this.prisma.reserva.findFirst({
       where: {
@@ -131,7 +126,7 @@ export class PrismaReservasRepository implements IReservasRepository {
       include: includeRelaciones,
     })) as DbReservaResult[];
 
-    return results.map((r) => this.mapRow(r));
+    return results.map(r => this.mapRow(r));
   }
 
   async create(data: {
@@ -156,10 +151,7 @@ export class PrismaReservasRepository implements IReservasRepository {
     return this.mapRow(result);
   }
 
-  async updateEstado(
-    id: string,
-    estado: string
-  ): Promise<ReservaConRelaciones> {
+  async updateEstado(id: string, estado: string): Promise<ReservaConRelaciones> {
     const result = (await this.prisma.reserva.update({
       where: { id },
       data: { estado: estado as EstadoReserva },
@@ -169,10 +161,7 @@ export class PrismaReservasRepository implements IReservasRepository {
     return this.mapRow(result);
   }
 
-  async updateConfirmar(
-    id: string,
-    fechaRecoleccion: Date
-  ): Promise<ReservaConRelaciones> {
+  async updateConfirmar(id: string, fechaRecoleccion: Date): Promise<ReservaConRelaciones> {
     const result = (await this.prisma.reserva.update({
       where: { id },
       data: {

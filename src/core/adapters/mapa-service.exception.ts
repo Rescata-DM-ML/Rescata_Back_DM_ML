@@ -10,9 +10,9 @@ export class MapaServiceException extends Error {
   constructor(
     message: string,
     public readonly proveedor: string,
-    public readonly causaOriginal?: unknown
+    public readonly causaOriginal?: unknown,
   ) {
     super(message);
-    this.name = 'MapaServiceException';
+    this.name = "MapaServiceException";
   }
 }

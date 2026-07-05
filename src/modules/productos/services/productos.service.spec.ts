@@ -156,7 +156,7 @@ describe("ProductosService", () => {
             error: "precio_invalido",
             message: "El precio de oferta debe ser menor al precio original",
           },
-        })
+        }),
       );
     });
   });
@@ -187,7 +187,7 @@ describe("ProductosService", () => {
             error: "producto_no_encontrado",
             message: "El producto con ID p1 no existe",
           },
-        })
+        }),
       );
     });
 
@@ -200,7 +200,7 @@ describe("ProductosService", () => {
           response: {
             error: "acceso_denegado",
           },
-        })
+        }),
       );
     });
   });
@@ -215,7 +215,7 @@ describe("ProductosService", () => {
           response: {
             error: "acceso_denegado",
           },
-        })
+        }),
       );
     });
 
@@ -228,7 +228,7 @@ describe("ProductosService", () => {
           response: {
             error: "acceso_denegado",
           },
-        })
+        }),
       );
     });
   });

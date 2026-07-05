@@ -57,9 +57,7 @@ export class ProductosController {
     status: 400,
     description: "lat o lng inválidos o faltantes",
   })
-  async getCercanos(
-    @Query() query: CercanosQueryDto
-  ): Promise<{
+  async getCercanos(@Query() query: CercanosQueryDto): Promise<{
     data: ProductoEntity[];
     nextCursor: string | null;
     total: number;
@@ -70,9 +68,7 @@ export class ProductosController {
   @Get()
   @ApiOperation({ summary: "Obtener todos los productos u obtener por negocio (público)" })
   @ApiResponse({ status: 200, type: [ProductoEntity] })
-  async getProductos(
-    @Query("negocioId") negocioId?: string
-  ): Promise<ProductoEntity[]> {
+  async getProductos(@Query("negocioId") negocioId?: string): Promise<ProductoEntity[]> {
     if (negocioId) {
       return this.productosService.findByNegocio(negocioId);
     }
@@ -95,7 +91,7 @@ export class ProductosController {
   @ApiResponse({ status: 403, description: "Acceso denegado" })
   async getProductoById(
     @Param("id") id: string,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ProductoEntity> {
     const negocioId = user.rol === "negocio" ? user.negocioId : undefined;
     return this.productosService.findById(id, negocioId);
@@ -110,7 +106,7 @@ export class ProductosController {
   @ApiResponse({ status: 403, description: "Acceso denegado o rol incorrecto" })
   async crearProducto(
     @Body() dto: CreateProductoDto,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ProductoEntity> {
     if (!user.negocioId) {
       throw new ForbiddenException({
@@ -133,7 +129,7 @@ export class ProductosController {
   async subirImagenes(
     @Param("id") id: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<{ message: string; total: number }> {
     if (!user.negocioId) {
       throw new ForbiddenException({
@@ -150,7 +146,7 @@ export class ProductosController {
   async actualizarProducto(
     @Param("id") id: string,
     @Body() dto: any,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ) {
     if (!user.negocioId) {
       throw new ForbiddenException({
@@ -164,10 +160,7 @@ export class ProductosController {
   @Delete(":id")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
-  async eliminarProducto(
-    @Param("id") id: string,
-    @CurrentUser() user: JwtPayload
-  ) {
+  async eliminarProducto(@Param("id") id: string, @CurrentUser() user: JwtPayload) {
     if (!user.negocioId) {
       throw new ForbiddenException({
         error: "acceso_denegado",

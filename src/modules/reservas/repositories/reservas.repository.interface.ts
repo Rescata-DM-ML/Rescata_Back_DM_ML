@@ -26,7 +26,7 @@ export interface IReservasRepository {
 
   findActivaPorConsumidorYProducto(
     consumidorId: string,
-    productoId: string
+    productoId: string,
   ): Promise<ReservaConRelaciones | null>;
 
   findMisReservas(consumidorId: string): Promise<ReservaConRelaciones[]>;
@@ -46,10 +46,7 @@ export interface IReservasRepository {
 
   findExpiradas(): Promise<ReservaConRelaciones[]>;
 
-  updateConfirmar(
-    id: string,
-    fechaRecoleccion: Date
-  ): Promise<ReservaConRelaciones>;
+  updateConfirmar(id: string, fechaRecoleccion: Date): Promise<ReservaConRelaciones>;
 }
 
 export const RESERVAS_REPOSITORY = Symbol("RESERVAS_REPOSITORY");

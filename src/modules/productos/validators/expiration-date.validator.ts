@@ -1,4 +1,9 @@
-import { ValidatorConstraint, ValidatorConstraintInterface, ValidationOptions, ValidateBy } from "class-validator";
+import {
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationOptions,
+  ValidateBy,
+} from "class-validator";
 
 @ValidatorConstraint({ name: "isFutureDate", async: false })
 export class IsFutureDateConstraint implements ValidatorConstraintInterface {
@@ -13,6 +18,6 @@ export class IsFutureDateConstraint implements ValidatorConstraintInterface {
 export function IsFutureDate(validationOptions?: ValidationOptions) {
   return ValidateBy(
     { name: "isFutureDate", validator: new IsFutureDateConstraint() },
-    validationOptions
+    validationOptions,
   );
 }

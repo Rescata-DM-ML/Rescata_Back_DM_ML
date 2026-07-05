@@ -4,6 +4,7 @@ export type ReservaConRelaciones = {
   consumidorId: string;
   negocioId: string;
   estado: string;
+  cantidad: number;
   expiresAt: Date;
   fechaRecoleccion: Date | null;
   creadaEn: Date;
@@ -16,8 +17,8 @@ export type ReservaConRelaciones = {
     negocioId: string;
     kgSalvados: number | null;
   };
-  consumidor: { id: string };
-  negocio: { id: string };
+  consumidor: { id: string; nombre?: string };
+  negocio: { id: string; nombre?: string };
 };
 
 export interface IReservasRepository {
@@ -28,10 +29,16 @@ export interface IReservasRepository {
     productoId: string,
   ): Promise<ReservaConRelaciones | null>;
 
+  findMisReservas(consumidorId: string): Promise<ReservaConRelaciones[]>;
+
+  findReservasPorNegocio(negocioId: string): Promise<ReservaConRelaciones[]>;
+
+
   create(data: {
     productoId: string;
     consumidorId: string;
     negocioId: string;
+    cantidad: number;
     expiresAt: Date;
   }): Promise<ReservaConRelaciones>;
 

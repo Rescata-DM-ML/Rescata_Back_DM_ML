@@ -39,6 +39,13 @@ export class ReservaEntity {
   estado: string;
 
   @ApiProperty({
+    example: 2,
+    description: "Cantidad de unidades apartadas",
+  })
+  @Expose()
+  cantidad: number;
+
+  @ApiProperty({
     example: "2026-06-29T10:00:00.000Z",
     description: "Fecha y hora límite para recoger el producto (2 horas desde creación)",
   })
@@ -62,6 +69,22 @@ export class ReservaEntity {
 
   @Exclude()
   actualizadoEn: Date;
+
+  @Expose()
+  producto?: {
+    id: string;
+    nombre: string;
+    estado: string;
+    cantidadDisponible: number;
+    negocioId: string;
+    kgSalvados: number | null;
+  };
+
+  @Expose()
+  consumidor?: { id: string; nombre?: string };
+
+  @Expose()
+  negocio?: { id: string; nombre?: string };
 
   constructor(partial: Partial<ReservaEntity>) {
     Object.assign(this, partial);

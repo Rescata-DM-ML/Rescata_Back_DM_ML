@@ -20,6 +20,7 @@ export class CrearReservaUseCase {
     productoId: string,
     consumidorId: string,
     negocioIdDelConsumidor?: string,
+    cantidad: number = 1
   ): Promise<ReservaEntity> {
     try {
       const reserva = await this.prisma.$transaction(async tx => {
@@ -47,10 +48,10 @@ export class CrearReservaUseCase {
         }
 
         // PASO 3 — Verificar stock
-        if (producto.cantidadDisponible <= 0) {
+        if (producto.cantidadDisponible < cantidad) {
           throw new ConflictException({
             error: "sin_stock",
-            message: "No hay unidades disponibles",
+            message: `No hay unidades suficientes (disponibles: ${producto.cantidadDisponible})`,
           });
         }
 
@@ -79,16 +80,16 @@ export class CrearReservaUseCase {
         }
 
         // PASO 6 — Reducción atómica de inventario
-        if (producto.cantidadDisponible > 1) {
+        if (producto.cantidadDisponible > cantidad) {
           await tx.producto.update({
             where: { id: productoId },
-            data: { cantidadDisponible: { decrement: 1 } },
+            data: { cantidadDisponible: { decrement: cantidad } },
           });
         } else {
           await tx.producto.update({
             where: { id: productoId },
             data: {
-              cantidadDisponible: { decrement: 1 },
+              cantidadDisponible: { decrement: cantidad },
               estado: "apartado",
             },
           });
@@ -102,6 +103,7 @@ export class CrearReservaUseCase {
             consumidorId,
             negocioId: producto.negocio.id,
             estado: "pendiente",
+            cantidad,
             expiresAt,
           },
         });
@@ -114,6 +116,7 @@ export class CrearReservaUseCase {
           productoId,
           consumidorId,
           negocioId: reserva.negocioId,
+          cantidad,
         });
       } catch (error) {
         console.error(

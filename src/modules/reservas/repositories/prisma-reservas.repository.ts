@@ -14,8 +14,8 @@ const includeRelaciones = {
       kgSalvados: true,
     },
   },
-  consumidor: { select: { id: true } },
-  negocio: { select: { id: true } },
+  consumidor: { select: { id: true, nombre: true } },
+  negocio: { select: { id: true, nombre: true } },
 };
 
 type DbReservaResult = {
@@ -24,6 +24,7 @@ type DbReservaResult = {
   consumidorId: string;
   negocioId: string;
   estado: EstadoReserva;
+  cantidad: number;
   expiresAt: Date;
   fechaRecoleccion: Date | null;
   creadaEn: Date;
@@ -36,8 +37,8 @@ type DbReservaResult = {
     negocioId: string;
     kgSalvados: unknown; // Use unknown internally to handle Prisma Decimal type conversion safely
   };
-  consumidor: { id: string };
-  negocio: { id: string };
+  consumidor: { id: string; nombre: string };
+  negocio: { id: string; nombre: string };
 };
 
 @Injectable()
@@ -51,6 +52,7 @@ export class PrismaReservasRepository implements IReservasRepository {
       consumidorId: row.consumidorId,
       negocioId: row.negocioId,
       estado: row.estado,
+      cantidad: row.cantidad,
       expiresAt: row.expiresAt,
       fechaRecoleccion: row.fechaRecoleccion,
       creadaEn: row.creadaEn,
@@ -63,8 +65,8 @@ export class PrismaReservasRepository implements IReservasRepository {
         negocioId: row.producto.negocioId,
         kgSalvados: row.producto.kgSalvados ? Number(row.producto.kgSalvados) : null,
       },
-      consumidor: { id: row.consumidor.id },
-      negocio: { id: row.negocio.id },
+      consumidor: { id: row.consumidor.id, nombre: row.consumidor.nombre },
+      negocio: { id: row.negocio.id, nombre: row.negocio.nombre },
     };
   }
 
@@ -95,6 +97,26 @@ export class PrismaReservasRepository implements IReservasRepository {
     return this.mapRow(result);
   }
 
+  async findMisReservas(consumidorId: string): Promise<ReservaConRelaciones[]> {
+    const results = (await this.prisma.reserva.findMany({
+      where: { consumidorId },
+      orderBy: { creadaEn: 'desc' },
+      include: includeRelaciones,
+    })) as DbReservaResult[];
+
+    return results.map(r => this.mapRow(r));
+  }
+
+  async findReservasPorNegocio(negocioId: string): Promise<ReservaConRelaciones[]> {
+    const results = (await this.prisma.reserva.findMany({
+      where: { negocioId },
+      orderBy: { creadaEn: 'desc' },
+      include: includeRelaciones,
+    })) as DbReservaResult[];
+
+    return results.map(r => this.mapRow(r));
+  }
+
   async findExpiradas(): Promise<ReservaConRelaciones[]> {
     const results = (await this.prisma.reserva.findMany({
       where: {
@@ -111,6 +133,7 @@ export class PrismaReservasRepository implements IReservasRepository {
     productoId: string;
     consumidorId: string;
     negocioId: string;
+    cantidad: number;
     expiresAt: Date;
   }): Promise<ReservaConRelaciones> {
     const result = (await this.prisma.reserva.create({
@@ -118,6 +141,7 @@ export class PrismaReservasRepository implements IReservasRepository {
         productoId: data.productoId,
         consumidorId: data.consumidorId,
         negocioId: data.negocioId,
+        cantidad: data.cantidad,
         expiresAt: data.expiresAt,
         estado: "pendiente",
       },

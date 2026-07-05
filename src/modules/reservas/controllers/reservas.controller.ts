@@ -43,21 +43,24 @@ export class ReservasController {
   ): Promise<ReservaEntity> {
     // Nota: El negocioId del consumidor se extrae de forma segura a través del JWT payload (user.negocioId)
     // para prevenir problemas de propiedad y evitar vulnerabilidades de Mass Assignment (no viene en el Body).
-    return this.reservasService.crearReserva(dto.productoId, user);
+    return this.reservasService.crearReserva(dto.productoId, user, dto.cantidad);
   }
 
   @Get("mis-reservas")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("consumidor")
-  async getMisReservas() {
-    return { message: "GET /reservas/mis-reservas - consumidor skeleton" };
+  async getMisReservas(@CurrentUser() user: JwtPayload): Promise<ReservaEntity[]> {
+    return this.reservasService.getMisReservas(user.sub);
   }
 
   @Get("negocio")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
-  async getReservasNegocio() {
-    return { message: "GET /reservas/negocio - negocio skeleton" };
+  async getReservasNegocio(@CurrentUser() user: JwtPayload): Promise<ReservaEntity[]> {
+    if (!user.negocioId) {
+      throw new Error("El usuario no tiene un negocio asociado");
+    }
+    return this.reservasService.getReservasPorNegocio(user.negocioId);
   }
 
   @Get(":id")

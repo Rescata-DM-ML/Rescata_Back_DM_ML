@@ -18,6 +18,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const message =
       exception instanceof HttpException ? exception.getResponse() : "Internal server error";
 
+    if (!(exception instanceof HttpException)) {
+      console.error("Unhandled Exception:", exception);
+    }
+
     // Determine if it is a critical operation
     let action: string | null = null;
     let userId: string | null = null;

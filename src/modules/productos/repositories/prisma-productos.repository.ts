@@ -1,10 +1,155 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../core/prisma.service";
 import { IProductosRepository, ProductoCercanoRaw, ResultadoCercanos } from "./productos.repository.interface";
+import { ProductoEntity } from "../entities/producto.entity";
+import { EstadoProducto } from "../../../../generated/prisma";
 
 @Injectable()
 export class PrismaProductosRepository implements IProductosRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  private mapRow(row: any): ProductoEntity {
+    return new ProductoEntity({
+      id: row.id,
+      nombre: row.nombre,
+      descripcion: row.descripcion || "",
+      precioOriginal: Number(row.precioOriginal),
+      precioOferta: Number(row.precioOferta),
+      cantidadDisponible: row.cantidadDisponible,
+      fechaCaducidad: row.fechaCaducidad,
+      negocioId: row.negocioId,
+      estado: row.estado,
+      creadoEn: row.creadoEn,
+      negocio: row.negocio ? {
+        id: row.negocio.id,
+        nombre: row.negocio.nombre,
+        direccion: row.negocio.direccion,
+        calificacionPromedio: Number(row.negocio.calificacionPromedio),
+      } : undefined,
+      imagenes: row.imagenes ? row.imagenes.map((img: any) => ({
+        url: img.url,
+      })) : undefined,
+      fotoUrl: row.imagenes && row.imagenes.length > 0 ? row.imagenes[0].url : (row.fotoUrl || null),
+    });
+  }
+
+  async crear(data: {
+    nombre: string;
+    descripcion: string;
+    precioOriginal: number;
+    precioOferta: number;
+    cantidadDisponible: number;
+    fechaCaducidad: Date;
+    negocioId: string;
+  }): Promise<ProductoEntity> {
+    const created = await this.prisma.producto.create({
+      data: {
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        precioOriginal: data.precioOriginal,
+        precioOferta: data.precioOferta,
+        cantidadDisponible: data.cantidadDisponible,
+        cantidadOriginal: data.cantidadDisponible,
+        fechaCaducidad: data.fechaCaducidad,
+        negocioId: data.negocioId,
+        estado: EstadoProducto.disponible,
+      },
+    });
+
+    return this.mapRow(created);
+  }
+
+  async findById(id: string): Promise<ProductoEntity | null> {
+    const row = await this.prisma.producto.findUnique({
+      where: { id },
+      include: { negocio: true, imagenes: { orderBy: { orden: "asc" } } },
+    });
+    if (!row) return null;
+
+    return this.mapRow(row);
+  }
+
+  async findAll(): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany();
+    return rows.map((row) => this.mapRow(row));
+  }
+
+  async buscar(filtro: string): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany({
+      where: {
+        nombre: {
+          contains: filtro,
+          mode: 'insensitive'
+        }
+      }
+    });
+    return rows.map(row => this.mapRow(row));
+  }
+
+  async actualizar(id: string, data: any): Promise<ProductoEntity> {
+    const row = await this.prisma.producto.update({
+      where: { id },
+      data,
+    });
+    return this.mapRow(row);
+  }
+
+  async eliminar(id: string): Promise<void> {
+    await this.prisma.producto.delete({
+      where: { id },
+    });
+  }
+
+  async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {
+    const rows = await this.prisma.producto.findMany({
+      where: { negocioId },
+    });
+    return rows.map(
+      (row) =>
+        new ProductoEntity({
+          id: row.id,
+          nombre: row.nombre,
+          descripcion: row.descripcion || "",
+          precioOriginal: Number(row.precioOriginal),
+          precioOferta: Number(row.precioOferta),
+          cantidadDisponible: row.cantidadDisponible,
+          fechaCaducidad: row.fechaCaducidad,
+          negocioId: row.negocioId,
+          estado: row.estado,
+          creadoEn: row.creadoEn,
+        })
+    );
+  }
+
+  async contarImagenes(productoId: string): Promise<number> {
+    return this.prisma.productoImagen.count({
+      where: { productoId },
+    });
+  }
+
+  async agregarImagen(
+    productoId: string,
+    url: string,
+    nombreUuid?: string,
+    mimeType?: string,
+    tamanioBytes?: number
+  ): Promise<void> {
+    const filename = url.split("/").pop() || "image.jpg";
+    const uuidPart = filename.split(".")[0] || "uuid-placeholder";
+    const ext = filename.split(".").pop() || "jpg";
+    const inferredMime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+
+    await this.prisma.productoImagen.create({
+      data: {
+        productoId,
+        url,
+        nombreUuid: nombreUuid || uuidPart,
+        mimeType: mimeType || inferredMime,
+        tamanioBytes: tamanioBytes || 1024,
+      },
+    });
+  }
 
   async findCercanos(params: {
     lat: number;
@@ -20,6 +165,7 @@ export class PrismaProductosRepository implements IProductosRepository {
       SELECT
         p.id,
         p.nombre,
+        CAST(p."precioOriginal" AS float) AS "precioOriginal",
         CAST(p."precioOferta" AS float) AS "precioOferta",
         p."fechaCaducidad",
         n.nombre AS "negocioNombre",
@@ -98,6 +244,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     interface RawDataRow {
       id: string;
       nombre: string;
+      precioOriginal: number | string;
       precioOferta: number | string;
       fechaCaducidad: Date;
       distanciaKm: number | string;
@@ -131,6 +278,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     const data: ProductoCercanoRaw[] = rawData.map((row) => ({
       id: row.id,
       nombre: row.nombre,
+      precioOriginal: parseFloat(String(row.precioOriginal)),
       precioOferta: parseFloat(String(row.precioOferta)),
       fechaCaducidad: row.fechaCaducidad,
       distanciaKm: parseFloat(String(row.distanciaKm)),

@@ -77,6 +77,16 @@ export class ReservasController {
     return { message: "GET /reservas/negocio - negocio skeleton" };
   }
 
+  @Get(":id")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor")
+  async getReservaById(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload
+  ): Promise<ReservaEntity> {
+    return this.reservasService.findById(id, user.sub);
+  }
+
   @Patch(":id/confirmar")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
@@ -119,8 +129,11 @@ export class ReservasController {
   @Put(":id/cancelar")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("consumidor", "negocio")
-  async cancelarReserva(@Param("id") id: string) {
-    return { message: `PUT /reservas/${id}/cancelar - consumidor/negocio skeleton` };
+  async cancelarReserva(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload
+  ): Promise<ReservaEntity> {
+    return this.reservasService.cancelar(id, user.sub);
   }
 }
 

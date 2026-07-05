@@ -32,13 +32,25 @@ export class ReservasService {
 
   async crearReserva(
     productoId: string,
-    user: JwtPayload
+    user: JwtPayload,
+    cantidad: number = 1
   ): Promise<ReservaEntity> {
     return this.crearReservaUseCase.execute(
       productoId,
       user.sub,
-      user.negocioId
+      user.negocioId,
+      cantidad
     );
+  }
+
+  async getMisReservas(consumidorId: string): Promise<ReservaEntity[]> {
+    const reservas = await this.repository.findMisReservas(consumidorId);
+    return reservas.map(r => new ReservaEntity(r));
+  }
+
+  async getReservasPorNegocio(negocioId: string): Promise<ReservaEntity[]> {
+    const reservas = await this.repository.findReservasPorNegocio(negocioId);
+    return reservas.map(r => new ReservaEntity(r));
   }
 
   async confirmarRecoleccion(
@@ -143,7 +155,7 @@ export class ReservasService {
       await this.prisma.producto.update({
         where: { id: reserva.producto.id },
         data: {
-          cantidadDisponible: { increment: 1 },
+          cantidadDisponible: { increment: reserva.cantidad },
           estado: "disponible",
         },
       });
@@ -151,7 +163,7 @@ export class ReservasService {
       await this.prisma.producto.update({
         where: { id: reserva.producto.id },
         data: {
-          cantidadDisponible: { increment: 1 },
+          cantidadDisponible: { increment: reserva.cantidad },
         },
       });
     }
@@ -180,7 +192,7 @@ export class ReservasService {
           await this.prisma.producto.update({
             where: { id: reserva.producto.id },
             data: {
-              cantidadDisponible: { increment: 1 },
+              cantidadDisponible: { increment: reserva.cantidad },
               estado: "disponible",
             },
           });
@@ -188,7 +200,7 @@ export class ReservasService {
           await this.prisma.producto.update({
             where: { id: reserva.producto.id },
             data: {
-              cantidadDisponible: { increment: 1 },
+              cantidadDisponible: { increment: reserva.cantidad },
             },
           });
         }

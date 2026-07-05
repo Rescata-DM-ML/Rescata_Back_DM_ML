@@ -26,7 +26,7 @@ describe("AuthService", () => {
     negocio: {
       create: jest.fn(),
     },
-    $transaction: jest.fn().mockImplementation((cb) => cb(mockPrismaService)),
+    $transaction: jest.fn().mockImplementation(cb => cb(mockPrismaService)),
   };
 
   const mockJwtService = {
@@ -70,9 +70,7 @@ describe("AuthService", () => {
     it("should throw UnauthorizedException if user does not exist", async () => {
       prisma.usuario.findUnique.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
       expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
         where: { correo: loginDto.correo },
         include: { negocio: true },
@@ -85,9 +83,7 @@ describe("AuthService", () => {
         deletedAt: new Date(),
       });
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it("should throw UnauthorizedException if password is invalid", async () => {
@@ -99,9 +95,7 @@ describe("AuthService", () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
 
     it("should successfully log in and return a token and user details", async () => {
@@ -172,16 +166,14 @@ describe("AuthService", () => {
         confirmacionContrasena: "different",
       };
 
-      await expect(service.registerBusiness(badDto)).rejects.toThrow(
-        BadRequestException
-      );
+      await expect(service.registerBusiness(badDto)).rejects.toThrow(BadRequestException);
     });
 
     it("should throw ConflictException if email is already registered", async () => {
       prisma.usuario.findUnique.mockResolvedValue({ id: "existing-id" });
 
       await expect(service.registerBusiness(registerBusinessDto)).rejects.toThrow(
-        ConflictException
+        ConflictException,
       );
       expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
         where: { correo: registerBusinessDto.correo },
@@ -193,7 +185,7 @@ describe("AuthService", () => {
       mapaAdapter.geocodificar.mockRejectedValue(new Error("Geocoding failed"));
 
       await expect(service.registerBusiness(registerBusinessDto)).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
     });
 

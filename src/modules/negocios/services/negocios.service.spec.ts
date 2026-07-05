@@ -77,7 +77,10 @@ describe("NegociosService", () => {
 
       const result = await service.crear(userId, dto);
 
-      expect(mockNegociosRepository.existePorUsuarioYNombre).toHaveBeenCalledWith(userId, dto.nombre);
+      expect(mockNegociosRepository.existePorUsuarioYNombre).toHaveBeenCalledWith(
+        userId,
+        dto.nombre,
+      );
       expect(mockMapaAdapter.geocodificar).toHaveBeenCalledWith(dto.direccion);
       expect(mockNegociosRepository.crear).toHaveBeenCalledWith({
         nombre: dto.nombre,
@@ -132,12 +135,16 @@ describe("NegociosService", () => {
     describe("actualizar", () => {
       it("debe lanzar NotFoundException si el negocio no existe", async () => {
         mockNegociosRepository.findById.mockResolvedValue(null);
-        await expect(service.actualizar("neg-123", "user-123", {})).rejects.toThrow(NotFoundException);
+        await expect(service.actualizar("neg-123", "user-123", {})).rejects.toThrow(
+          NotFoundException,
+        );
       });
 
       it("debe lanzar ForbiddenException si el negocio no pertenece al usuario", async () => {
         mockNegociosRepository.findById.mockResolvedValue(mockNegocio);
-        await expect(service.actualizar("neg-123", "user-other", {})).rejects.toThrow(ForbiddenException);
+        await expect(service.actualizar("neg-123", "user-other", {})).rejects.toThrow(
+          ForbiddenException,
+        );
       });
 
       it("debe actualizar si el negocio existe y pertenece al usuario", async () => {

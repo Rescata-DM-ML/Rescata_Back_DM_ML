@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../core/prisma.service";
-import { IProductosRepository, ProductoCercanoRaw, ResultadoCercanos } from "./productos.repository.interface";
+import {
+  IProductosRepository,
+  ProductoCercanoRaw,
+  ResultadoCercanos,
+} from "./productos.repository.interface";
 import { ProductoEntity } from "../entities/producto.entity";
 import { EstadoProducto } from "../../../../generated/prisma";
 
@@ -21,16 +25,20 @@ export class PrismaProductosRepository implements IProductosRepository {
       negocioId: row.negocioId,
       estado: row.estado,
       creadoEn: row.creadoEn,
-      negocio: row.negocio ? {
-        id: row.negocio.id,
-        nombre: row.negocio.nombre,
-        direccion: row.negocio.direccion,
-        calificacionPromedio: Number(row.negocio.calificacionPromedio),
-      } : undefined,
-      imagenes: row.imagenes ? row.imagenes.map((img: any) => ({
-        url: img.url,
-      })) : undefined,
-      fotoUrl: row.imagenes && row.imagenes.length > 0 ? row.imagenes[0].url : (row.fotoUrl || null),
+      negocio: row.negocio
+        ? {
+            id: row.negocio.id,
+            nombre: row.negocio.nombre,
+            direccion: row.negocio.direccion,
+            calificacionPromedio: Number(row.negocio.calificacionPromedio),
+          }
+        : undefined,
+      imagenes: row.imagenes
+        ? row.imagenes.map((img: any) => ({
+            url: img.url,
+          }))
+        : undefined,
+      fotoUrl: row.imagenes && row.imagenes.length > 0 ? row.imagenes[0].url : row.fotoUrl || null,
     });
   }
 
@@ -72,7 +80,7 @@ export class PrismaProductosRepository implements IProductosRepository {
 
   async findAll(): Promise<ProductoEntity[]> {
     const rows = await this.prisma.producto.findMany();
-    return rows.map((row) => this.mapRow(row));
+    return rows.map(row => this.mapRow(row));
   }
 
   async buscar(filtro: string): Promise<ProductoEntity[]> {
@@ -80,9 +88,9 @@ export class PrismaProductosRepository implements IProductosRepository {
       where: {
         nombre: {
           contains: filtro,
-          mode: 'insensitive'
-        }
-      }
+          mode: "insensitive",
+        },
+      },
     });
     return rows.map(row => this.mapRow(row));
   }
@@ -104,22 +112,9 @@ export class PrismaProductosRepository implements IProductosRepository {
   async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {
     const rows = await this.prisma.producto.findMany({
       where: { negocioId },
+      include: { imagenes: { orderBy: { orden: "asc" } } },
     });
-    return rows.map(
-      (row) =>
-        new ProductoEntity({
-          id: row.id,
-          nombre: row.nombre,
-          descripcion: row.descripcion || "",
-          precioOriginal: Number(row.precioOriginal),
-          precioOferta: Number(row.precioOferta),
-          cantidadDisponible: row.cantidadDisponible,
-          fechaCaducidad: row.fechaCaducidad,
-          negocioId: row.negocioId,
-          estado: row.estado,
-          creadoEn: row.creadoEn,
-        })
-    );
+    return rows.map(row => this.mapRow(row));
   }
 
   async contarImagenes(productoId: string): Promise<number> {
@@ -133,7 +128,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     url: string,
     nombreUuid?: string,
     mimeType?: string,
-    tamanioBytes?: number
+    tamanioBytes?: number,
   ): Promise<void> {
     const filename = url.split("/").pop() || "image.jpg";
     const uuidPart = filename.split(".")[0] || "uuid-placeholder";
@@ -263,19 +258,14 @@ export class PrismaProductosRepository implements IProductosRepository {
       lng,
       radio,
       limit,
-      offset
+      offset,
     );
 
-    const rawCount = await this.prisma.$queryRawUnsafe<RawCountRow[]>(
-      countSql,
-      lat,
-      lng,
-      radio
-    );
+    const rawCount = await this.prisma.$queryRawUnsafe<RawCountRow[]>(countSql, lat, lng, radio);
 
     const total = rawCount[0]?.count ? parseInt(String(rawCount[0].count), 10) : 0;
 
-    const data: ProductoCercanoRaw[] = rawData.map((row) => ({
+    const data: ProductoCercanoRaw[] = rawData.map(row => ({
       id: row.id,
       nombre: row.nombre,
       precioOriginal: parseFloat(String(row.precioOriginal)),

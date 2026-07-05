@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../core/prisma.service';
-import { INegociosRepository } from './negocios.repository.interface';
-import { NegocioEntity } from '../entities/negocio.entity';
-import { CategoriaNegocios } from '../../../../generated/prisma';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../../core/prisma.service";
+import { INegociosRepository } from "./negocios.repository.interface";
+import { NegocioEntity } from "../entities/negocio.entity";
+import { CategoriaNegocios } from "../../../../generated/prisma";
 
 @Injectable()
 export class PrismaNegociosRepository implements INegociosRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-   
   private mapRow(row: any): NegocioEntity {
     return {
       id: row.id,
@@ -18,7 +17,8 @@ export class PrismaNegociosRepository implements INegociosRepository {
       categoria: row.categoria,
       latitud: Number(row.latitud),
       longitud: Number(row.longitud),
-      calificacionPromedio: row.calificacionPromedio !== undefined ? Number(row.calificacionPromedio) : 0,
+      calificacionPromedio:
+        row.calificacionPromedio !== undefined ? Number(row.calificacionPromedio) : 0,
       creadoEn: row.creadoEn,
       usuarioId: row.usuarioId,
     };
@@ -65,7 +65,7 @@ export class PrismaNegociosRepository implements INegociosRepository {
 
   async findAll(): Promise<NegocioEntity[]> {
     const rows = await this.prisma.negocio.findMany();
-    return rows.map((row) => this.mapRow(row));
+    return rows.map(row => this.mapRow(row));
   }
 
   async buscar(filtro: string): Promise<NegocioEntity[]> {
@@ -73,9 +73,9 @@ export class PrismaNegociosRepository implements INegociosRepository {
       where: {
         nombre: {
           contains: filtro,
-          mode: 'insensitive'
-        }
-      }
+          mode: "insensitive",
+        },
+      },
     });
     return rows.map(row => this.mapRow(row));
   }

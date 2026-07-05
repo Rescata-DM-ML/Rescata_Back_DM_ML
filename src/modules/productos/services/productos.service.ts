@@ -23,7 +23,7 @@ export class ProductosService {
     private readonly repository: IProductosRepository,
     private readonly redisService: RedisService,
     @Inject(ALMACENAMIENTO_ADAPTER)
-    private readonly almacenamientoAdapter: IAlmacenamientoAdapter
+    private readonly almacenamientoAdapter: IAlmacenamientoAdapter,
   ) {}
 
   async crear(negocioId: string, dto: CreateProductoDto): Promise<ProductoEntity> {
@@ -57,7 +57,7 @@ export class ProductosService {
   async subirImagenes(
     productoId: string,
     negocioId: string,
-    files: Express.Multer.File[]
+    files: Express.Multer.File[],
   ): Promise<{ message: string; total: number }> {
     const producto = await this.repository.findById(productoId);
     if (!producto) {
@@ -107,7 +107,7 @@ export class ProductosService {
         urlPublica,
         nombreUuid,
         file.mimetype,
-        file.size
+        file.size,
       );
     }
 
@@ -185,7 +185,7 @@ export class ProductosService {
     });
 
     const data = resultado.data.map(
-      (item) =>
+      item =>
         new ProductoEntity({
           id: item.id,
           nombre: item.nombre,
@@ -198,7 +198,7 @@ export class ProductosService {
             nombre: item.negocioNombre,
             calificacionPromedio: item.calificacionPromedio,
           },
-        })
+        }),
     );
 
     return {

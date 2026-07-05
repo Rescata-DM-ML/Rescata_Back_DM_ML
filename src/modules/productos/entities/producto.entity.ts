@@ -3,7 +3,11 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class NegocioInfoEntity {
   @Expose()
-  @ApiProperty({ example: "a3b4c5d6-e7f8-9012-3456-7890abcdef12", description: "ID del negocio", required: false })
+  @ApiProperty({
+    example: "a3b4c5d6-e7f8-9012-3456-7890abcdef12",
+    description: "ID del negocio",
+    required: false,
+  })
   id?: string;
 
   @Expose()
@@ -22,7 +26,10 @@ export class NegocioInfoEntity {
 @Exclude()
 export class ProductoEntity {
   @Expose()
-  @ApiProperty({ example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", description: "ID único del producto" })
+  @ApiProperty({
+    example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    description: "ID único del producto",
+  })
   id: string;
 
   @Expose()
@@ -30,15 +37,19 @@ export class ProductoEntity {
   nombre: string;
 
   @Expose()
-  @ApiProperty({ example: "Delicioso pan dulce recién horneado", description: "Descripción del producto", required: false })
+  @ApiProperty({
+    example: "Delicioso pan dulce recién horneado",
+    description: "Descripción del producto",
+    required: false,
+  })
   descripcion: string;
 
   @Expose()
-  @ApiProperty({ example: 50.00, description: "Precio original del producto" })
+  @ApiProperty({ example: 50.0, description: "Precio original del producto" })
   precioOriginal: number;
 
   @Expose()
-  @ApiProperty({ example: 35.00, description: "Precio de oferta del producto" })
+  @ApiProperty({ example: 35.0, description: "Precio de oferta del producto" })
   precioOferta: number;
 
   @Expose()
@@ -46,11 +57,17 @@ export class ProductoEntity {
   cantidadDisponible: number;
 
   @Expose()
-  @ApiProperty({ example: "2026-07-15T20:00:00.000Z", description: "Fecha de caducidad del producto" })
+  @ApiProperty({
+    example: "2026-07-15T20:00:00.000Z",
+    description: "Fecha de caducidad del producto",
+  })
   fechaCaducidad: Date;
 
   @Expose()
-  @ApiProperty({ example: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", description: "ID del negocio que ofrece el producto" })
+  @ApiProperty({
+    example: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    description: "ID del negocio que ofrece el producto",
+  })
   negocioId: string;
 
   @Expose()
@@ -58,7 +75,10 @@ export class ProductoEntity {
   estado: string;
 
   @Expose()
-  @ApiProperty({ example: "2026-06-28T21:00:00.000Z", description: "Fecha de creación del registro" })
+  @ApiProperty({
+    example: "2026-06-28T21:00:00.000Z",
+    description: "Fecha de creación del registro",
+  })
   creadoEn: Date;
 
   // Additional fields for local listings and search feeds
@@ -67,16 +87,29 @@ export class ProductoEntity {
   distanciaKm?: number;
 
   @Expose()
-  @ApiProperty({ example: "https://r2.dev/imagen.jpg", description: "URL de la foto del producto", nullable: true, required: false })
+  @ApiProperty({
+    example: "https://r2.dev/imagen.jpg",
+    description: "URL de la foto del producto",
+    nullable: true,
+    required: false,
+  })
   fotoUrl?: string | null;
 
   @Expose()
   @Type(() => NegocioInfoEntity)
-  @ApiProperty({ type: NegocioInfoEntity, description: "Información resumida del negocio", required: false })
+  @ApiProperty({
+    type: NegocioInfoEntity,
+    description: "Información resumida del negocio",
+    required: false,
+  })
   negocio?: NegocioInfoEntity;
 
   @Expose()
-  @ApiProperty({ example: [{ url: "https://r2.dev/imagen.jpg" }], description: "Galería de imágenes del producto", required: false })
+  @ApiProperty({
+    example: [{ url: "https://r2.dev/imagen.jpg" }],
+    description: "Galería de imágenes del producto",
+    required: false,
+  })
   imagenes?: { url: string }[];
 
   constructor(partial: Partial<ProductoEntity>) {

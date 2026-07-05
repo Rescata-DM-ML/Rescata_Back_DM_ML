@@ -1,6 +1,6 @@
-import { Global, Module } from '@nestjs/common';
-import { MAPA_ADAPTER } from './adapters/mapa.adapter.interface';
-import { NominatimAdapter } from './adapters/nominatim.adapter';
+import { Global, Module } from "@nestjs/common";
+import { MAPA_ADAPTER } from "./adapters/mapa.adapter.interface";
+import { NominatimAdapter } from "./adapters/nominatim.adapter";
 
 @Global()
 @Module({

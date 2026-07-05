@@ -27,30 +27,22 @@ export class ReservasService {
     private readonly repository: IReservasRepository,
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
-    private readonly crearReservaUseCase: CrearReservaUseCase
+    private readonly crearReservaUseCase: CrearReservaUseCase,
   ) {}
 
-  async crearReserva(
-    productoId: string,
-    user: JwtPayload
-  ): Promise<ReservaEntity> {
-    return this.crearReservaUseCase.execute(
-      productoId,
-      user.sub,
-      user.negocioId
-    );
+  async crearReserva(productoId: string, user: JwtPayload): Promise<ReservaEntity> {
+    return this.crearReservaUseCase.execute(productoId, user.sub, user.negocioId);
   }
 
   async confirmarRecoleccion(
     reservaId: string,
-    negocioId: string | undefined
+    negocioId: string | undefined,
   ): Promise<ReservaEntity> {
     // PASO 1 — Verificar negocioId existe en JWT
     if (!negocioId) {
       throw new ForbiddenException({
         error: "negocio_no_registrado",
-        message:
-          "Tu cuenta no tiene un negocio asociado. Completa el registro de negocio.",
+        message: "Tu cuenta no tiene un negocio asociado. Completa el registro de negocio.",
       });
     }
 
@@ -82,10 +74,7 @@ export class ReservasService {
 
     // PASO 5 — Confirmar en BD
     const fechaRecoleccion = new Date();
-    const confirmada = await this.repository.updateConfirmar(
-      reservaId,
-      fechaRecoleccion
-    );
+    const confirmada = await this.repository.updateConfirmar(reservaId, fechaRecoleccion);
 
     // PASO 6 — Publicar en Redis (Observer/EDA)
     try {
@@ -98,10 +87,7 @@ export class ReservasService {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(
-        "Error publicando reserva.confirmada:",
-        message
-      );
+      console.error("Error publicando reserva.confirmada:", message);
       // NO relanzar. La reserva ya está confirmada en BD. Redis falla gracefully.
     }
 
@@ -173,7 +159,7 @@ export class ReservasService {
     const expiradas = await this.repository.findExpiradas();
 
     await Promise.all(
-      expiradas.map(async (reserva) => {
+      expiradas.map(async reserva => {
         await this.repository.updateEstado(reserva.id, "expirado");
 
         if (reserva.producto.estado === "apartado") {
@@ -202,7 +188,7 @@ export class ReservasService {
         } catch {
           console.error("Error publicando reserva.expirada");
         }
-      })
+      }),
     );
 
     if (expiradas.length > 0) {

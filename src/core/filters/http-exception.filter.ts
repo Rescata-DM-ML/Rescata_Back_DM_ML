@@ -1,17 +1,11 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from "@nestjs/common";
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from "@nestjs/common";
 import { Request, Response } from "express";
 import { PrismaService } from "../prisma.service";
 import { Prisma } from "../../../generated/prisma";
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -19,14 +13,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : "Internal server error";
+      exception instanceof HttpException ? exception.getResponse() : "Internal server error";
 
     // Determine if it is a critical operation
     let action: string | null = null;
@@ -34,10 +24,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (request.method === "POST" && request.path === "/auth/login") {
       action = "autenticacion_fallida";
-    } else if (
-      request.method === "POST" &&
-      request.path === "/auth/register/consumer"
-    ) {
+    } else if (request.method === "POST" && request.path === "/auth/register/consumer") {
       action = "registro_usuario_fallido";
     } else if (request.method === "POST" && request.path === "/reservas") {
       action = "reserva_creada_fallido";
@@ -58,9 +45,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const ip =
-      (request.headers["x-forwarded-for"] as string) ||
-      request.socket.remoteAddress ||
-      request.ip;
+      (request.headers["x-forwarded-for"] as string) || request.socket.remoteAddress || request.ip;
 
     if (action) {
       const ahora = new Date();
@@ -91,7 +76,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             metadata: logEntry.metadata as Prisma.InputJsonValue,
           },
         })
-        .catch((err) => console.error("Error saving failed audit log:", err));
+        .catch(err => console.error("Error saving failed audit log:", err));
     }
 
     // Send response back
@@ -99,9 +84,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getResponse()
         : {
-          statusCode: status,
-          message: "Internal server error",
-        }
+            statusCode: status,
+            message: "Internal server error",
+          },
     );
   }
 

@@ -20,9 +20,7 @@ export class RegisterDto {
   nombre: string;
 
   @IsEmail({}, { message: "Ingresa un correo válido" })
-  @Transform(({ value }) =>
-    typeof value === "string" ? value.trim().toLowerCase() : value,
-  )
+  @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
   correo: string;
 
   @IsString()

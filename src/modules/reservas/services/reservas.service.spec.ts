@@ -75,11 +75,7 @@ describe("ReservasService", () => {
 
       const result = await service.crearReserva("prod-123", user);
 
-      expect(crearReservaUseCase.execute).toHaveBeenCalledWith(
-        "prod-123",
-        "usr-1",
-        "neg-1"
-      );
+      expect(crearReservaUseCase.execute).toHaveBeenCalledWith("prod-123", "usr-1", "neg-1");
       expect(result).toBe(mockReserva);
     });
   });
@@ -152,15 +148,11 @@ describe("ReservasService", () => {
 
       // Redis event published for both
       expect(redisService.publish).toHaveBeenCalledTimes(2);
-      expect(redisService.publish).toHaveBeenNthCalledWith(
-        1,
-        "reserva.expirada",
-        {
-          reservaId: "res-1",
-          productoId: "prod-1",
-          consumidorId: "usr-1",
-        }
-      );
+      expect(redisService.publish).toHaveBeenNthCalledWith(1, "reserva.expirada", {
+        reservaId: "res-1",
+        productoId: "prod-1",
+        consumidorId: "usr-1",
+      });
     });
 
     it("should handle cron task execute handleCronReservasExpiradas", async () => {

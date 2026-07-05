@@ -4,6 +4,7 @@ import { ProductoEntity } from "../entities/producto.entity";
 export type ProductoCercanoRaw = {
   id: string;
   nombre: string;
+  precioOriginal: number;
   precioOferta: number;
   fechaCaducidad: Date;
   distanciaKm: number;

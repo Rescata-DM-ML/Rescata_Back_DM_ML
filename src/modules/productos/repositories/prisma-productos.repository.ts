@@ -21,6 +21,16 @@ export class PrismaProductosRepository implements IProductosRepository {
       negocioId: row.negocioId,
       estado: row.estado,
       creadoEn: row.creadoEn,
+      negocio: row.negocio ? {
+        id: row.negocio.id,
+        nombre: row.negocio.nombre,
+        direccion: row.negocio.direccion,
+        calificacionPromedio: Number(row.negocio.calificacionPromedio),
+      } : undefined,
+      imagenes: row.imagenes ? row.imagenes.map((img: any) => ({
+        url: img.url,
+      })) : undefined,
+      fotoUrl: row.imagenes && row.imagenes.length > 0 ? row.imagenes[0].url : (row.fotoUrl || null),
     });
   }
 
@@ -53,6 +63,7 @@ export class PrismaProductosRepository implements IProductosRepository {
   async findById(id: string): Promise<ProductoEntity | null> {
     const row = await this.prisma.producto.findUnique({
       where: { id },
+      include: { negocio: true, imagenes: { orderBy: { orden: "asc" } } },
     });
     if (!row) return null;
 
@@ -154,6 +165,7 @@ export class PrismaProductosRepository implements IProductosRepository {
       SELECT
         p.id,
         p.nombre,
+        CAST(p."precioOriginal" AS float) AS "precioOriginal",
         CAST(p."precioOferta" AS float) AS "precioOferta",
         p."fechaCaducidad",
         n.nombre AS "negocioNombre",
@@ -232,6 +244,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     interface RawDataRow {
       id: string;
       nombre: string;
+      precioOriginal: number | string;
       precioOferta: number | string;
       fechaCaducidad: Date;
       distanciaKm: number | string;
@@ -265,6 +278,7 @@ export class PrismaProductosRepository implements IProductosRepository {
     const data: ProductoCercanoRaw[] = rawData.map((row) => ({
       id: row.id,
       nombre: row.nombre,
+      precioOriginal: parseFloat(String(row.precioOriginal)),
       precioOferta: parseFloat(String(row.precioOferta)),
       fechaCaducidad: row.fechaCaducidad,
       distanciaKm: parseFloat(String(row.distanciaKm)),

@@ -26,7 +26,7 @@ export class AuthService {
     });
   }
 
-  async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string } }> {
+  async login(loginDto: LoginDto): Promise<{ token: string; user: { id: string; nombre: string; correo: string; rol: string; negocio?: any } }> {
     // Nota: Las excepciones lanzadas aquí son interceptadas por el HttpExceptionFilter global
     // para registrar un log de auditoría genérico como "autenticacion_fallida" sin exponer detalles
     // sobre si el correo existe o no en la base de datos (mitigando enumeración de cuentas).
@@ -68,6 +68,14 @@ export class AuthService {
         nombre: usuario.nombre,
         correo: usuario.correo,
         rol: usuario.rol,
+        negocio: usuario.negocio ? {
+          id: usuario.negocio.id,
+          nombre: usuario.negocio.nombre,
+          direccion: usuario.negocio.direccion,
+          categoria: usuario.negocio.categoria,
+          latitud: usuario.negocio.latitud,
+          longitud: usuario.negocio.longitud,
+        } : null,
       },
     };
   }
@@ -231,6 +239,14 @@ export class AuthService {
         nombre: usuario.nombre,
         correo: usuario.correo,
         rol: usuario.rol,
+        negocio: {
+          id: negocio.id,
+          nombre: negocio.nombre,
+          direccion: negocio.direccion,
+          categoria: negocio.categoria,
+          latitud: negocio.latitud,
+          longitud: negocio.longitud,
+        },
       },
     };
   }

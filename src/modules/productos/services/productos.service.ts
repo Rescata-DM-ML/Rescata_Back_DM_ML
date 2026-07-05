@@ -189,6 +189,7 @@ export class ProductosService {
         new ProductoEntity({
           id: item.id,
           nombre: item.nombre,
+          precioOriginal: item.precioOriginal,
           precioOferta: item.precioOferta,
           fechaCaducidad: item.fechaCaducidad,
           distanciaKm: item.distanciaKm,
@@ -205,5 +206,9 @@ export class ProductosService {
       nextCursor: resultado.nextCursor,
       total: resultado.total,
     };
+  }
+
+  async findByNegocio(negocioId: string): Promise<ProductoEntity[]> {
+    return this.repository.findByNegocio(negocioId);
   }
 }

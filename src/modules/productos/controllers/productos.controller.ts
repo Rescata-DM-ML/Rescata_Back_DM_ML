@@ -26,6 +26,8 @@ import { Roles } from "../../../core/decorators/roles.decorator.decorator";
 import { CurrentUser } from "../../../core/decorators/current-user.decorator";
 import { FilesInterceptor } from "@nestjs/platform-express";
 
+import { ThrottlerGuard, Throttle } from "@nestjs/throttler";
+
 interface JwtPayload {
   sub: string;
   email: string;
@@ -38,6 +40,8 @@ interface JwtPayload {
 export class ProductosController {
   constructor(private readonly productosService: ProductosService) {}
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Get("cercanos")
   @ApiOperation({
     summary: "Feed de productos cercanos al usuario",

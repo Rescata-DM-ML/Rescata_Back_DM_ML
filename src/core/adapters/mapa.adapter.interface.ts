@@ -14,11 +14,8 @@ export type Coordenadas = {
 export interface IMapaAdapter {
   geocodificar(direccion: string): Promise<Coordenadas>;
 
-  calcularDistancia(
-    origen: Coordenadas,
-    destino: Coordenadas,
-  ): Promise<number>;
+  calcularDistancia(origen: Coordenadas, destino: Coordenadas): Promise<number>;
   // retorna distancia en kilómetros
 }
 
-export const MAPA_ADAPTER = Symbol('MAPA_ADAPTER');
+export const MAPA_ADAPTER = Symbol("MAPA_ADAPTER");

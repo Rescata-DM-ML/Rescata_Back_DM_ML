@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { RedisModule } from "./redis/redis.module";
@@ -20,6 +22,16 @@ import { TransformInterceptor } from "./core/interceptors/transform.interceptor"
 
 @Module({
   imports: [
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          ttl: config.get("THROTTLE_TTL", 60000),
+          limit: config.get("THROTTLE_LIMIT", 10),
+        },
+      ],
+    }),
     RedisModule,
     PrismaModule,
     CoreModule,

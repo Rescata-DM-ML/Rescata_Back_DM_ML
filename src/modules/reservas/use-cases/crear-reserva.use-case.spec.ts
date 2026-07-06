@@ -1,9 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import {
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from "@nestjs/common";
+import { ConflictException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { CrearReservaUseCase } from "./crear-reserva.use-case";
 import { PrismaService } from "../../../core/prisma.service";
 import { RedisService } from "../../../redis/redis.service";
@@ -26,7 +22,7 @@ describe("CrearReservaUseCase", () => {
   };
 
   const mockPrismaService = {
-    $transaction: jest.fn().mockImplementation((cb) => cb(mockTransaction)),
+    $transaction: jest.fn().mockImplementation(cb => cb(mockTransaction)),
   };
 
   const mockRedisService = {
@@ -66,9 +62,9 @@ describe("CrearReservaUseCase", () => {
     it("should throw NotFoundException if product does not exist", async () => {
       mockTransaction.producto.findUnique.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute("prod-invalid", "usr-1", "negocio-2")
-      ).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute("prod-invalid", "usr-1", "negocio-2")).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should throw ConflictException if product state is not disponible", async () => {
@@ -77,9 +73,9 @@ describe("CrearReservaUseCase", () => {
         estado: "apartado",
       });
 
-      await expect(
-        useCase.execute("prod-1", "usr-1", "negocio-2")
-      ).rejects.toThrow(ConflictException);
+      await expect(useCase.execute("prod-1", "usr-1", "negocio-2")).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should throw ConflictException if product quantity is 0 or less", async () => {
@@ -88,26 +84,26 @@ describe("CrearReservaUseCase", () => {
         cantidadDisponible: 0,
       });
 
-      await expect(
-        useCase.execute("prod-1", "usr-1", "negocio-2")
-      ).rejects.toThrow(ConflictException);
+      await expect(useCase.execute("prod-1", "usr-1", "negocio-2")).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should throw ForbiddenException if user owns the negocio of the product (BOLA prevention)", async () => {
       mockTransaction.producto.findUnique.mockResolvedValue(mockProduct);
 
-      await expect(
-        useCase.execute("prod-1", "usr-1", "negocio-1")
-      ).rejects.toThrow(ForbiddenException);
+      await expect(useCase.execute("prod-1", "usr-1", "negocio-1")).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it("should throw ConflictException if active reservation already exists", async () => {
       mockTransaction.producto.findUnique.mockResolvedValue(mockProduct);
       mockTransaction.reserva.findFirst.mockResolvedValue({ id: "res-exist" });
 
-      await expect(
-        useCase.execute("prod-1", "usr-1", "negocio-2")
-      ).rejects.toThrow(ConflictException);
+      await expect(useCase.execute("prod-1", "usr-1", "negocio-2")).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should successfully reserve product decrementing stock (stock > 1)", async () => {
@@ -131,10 +127,7 @@ describe("CrearReservaUseCase", () => {
         where: { id: "prod-1" },
         data: { cantidadDisponible: { decrement: 1 } },
       });
-      expect(redisService.publish).toHaveBeenCalledWith(
-        "reserva.creada",
-        expect.any(Object)
-      );
+      expect(redisService.publish).toHaveBeenCalledWith("reserva.creada", expect.any(Object));
       expect(result).toBeInstanceOf(ReservaEntity);
       expect(result.id).toBe("res-new");
     });
@@ -173,12 +166,12 @@ describe("CrearReservaUseCase", () => {
         new Prisma.PrismaClientKnownRequestError("Conflict", {
           code: "P2002",
           clientVersion: "7.8.0",
-        })
+        }),
       );
 
-      await expect(
-        useCase.execute("prod-1", "usr-1", "negocio-2")
-      ).rejects.toThrow(ConflictException);
+      await expect(useCase.execute("prod-1", "usr-1", "negocio-2")).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should gracefully handle Redis errors when publishing event", async () => {

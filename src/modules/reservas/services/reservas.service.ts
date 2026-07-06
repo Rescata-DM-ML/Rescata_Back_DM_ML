@@ -27,30 +27,41 @@ export class ReservasService {
     private readonly repository: IReservasRepository,
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
-    private readonly crearReservaUseCase: CrearReservaUseCase
+    private readonly crearReservaUseCase: CrearReservaUseCase,
   ) {}
 
   async crearReserva(
     productoId: string,
-    user: JwtPayload
+    user: JwtPayload,
+    cantidad: number = 1
   ): Promise<ReservaEntity> {
     return this.crearReservaUseCase.execute(
       productoId,
       user.sub,
-      user.negocioId
+      user.negocioId,
+      cantidad
     );
+  }
+
+  async getMisReservas(consumidorId: string): Promise<ReservaEntity[]> {
+    const reservas = await this.repository.findMisReservas(consumidorId);
+    return reservas.map(r => new ReservaEntity(r));
+  }
+
+  async getReservasPorNegocio(negocioId: string): Promise<ReservaEntity[]> {
+    const reservas = await this.repository.findReservasPorNegocio(negocioId);
+    return reservas.map(r => new ReservaEntity(r));
   }
 
   async confirmarRecoleccion(
     reservaId: string,
-    negocioId: string | undefined
+    negocioId: string | undefined,
   ): Promise<ReservaEntity> {
     // PASO 1 — Verificar negocioId existe en JWT
     if (!negocioId) {
       throw new ForbiddenException({
         error: "negocio_no_registrado",
-        message:
-          "Tu cuenta no tiene un negocio asociado. Completa el registro de negocio.",
+        message: "Tu cuenta no tiene un negocio asociado. Completa el registro de negocio.",
       });
     }
 
@@ -82,10 +93,7 @@ export class ReservasService {
 
     // PASO 5 — Confirmar en BD
     const fechaRecoleccion = new Date();
-    const confirmada = await this.repository.updateConfirmar(
-      reservaId,
-      fechaRecoleccion
-    );
+    const confirmada = await this.repository.updateConfirmar(reservaId, fechaRecoleccion);
 
     // PASO 6 — Publicar en Redis (Observer/EDA)
     try {
@@ -98,10 +106,7 @@ export class ReservasService {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(
-        "Error publicando reserva.confirmada:",
-        message
-      );
+      console.error("Error publicando reserva.confirmada:", message);
       // NO relanzar. La reserva ya está confirmada en BD. Redis falla gracefully.
     }
 
@@ -109,18 +114,78 @@ export class ReservasService {
     return new ReservaEntity(confirmada);
   }
 
+  async findById(id: string, userId: string): Promise<ReservaEntity> {
+    const reserva = await this.repository.findById(id);
+    if (!reserva) {
+      throw new NotFoundException({
+        error: "reserva_no_encontrada",
+      });
+    }
+    if (reserva.consumidorId !== userId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+    return new ReservaEntity(reserva);
+  }
+
+  async cancelar(id: string, userId: string): Promise<ReservaEntity> {
+    const reserva = await this.repository.findById(id);
+    if (!reserva) {
+      throw new NotFoundException({
+        error: "reserva_no_encontrada",
+      });
+    }
+    if (reserva.consumidorId !== userId) {
+      throw new ForbiddenException({
+        error: "acceso_denegado",
+      });
+    }
+
+    const cancelada = await this.repository.updateEstado(id, "cancelado");
+
+    if (reserva.producto.estado === "apartado") {
+      await this.prisma.producto.update({
+        where: { id: reserva.producto.id },
+        data: {
+          cantidadDisponible: { increment: reserva.cantidad },
+          estado: "disponible",
+        },
+      });
+    } else {
+      await this.prisma.producto.update({
+        where: { id: reserva.producto.id },
+        data: {
+          cantidadDisponible: { increment: reserva.cantidad },
+        },
+      });
+    }
+
+    try {
+      await this.redisService.publish("reserva.cancelada", {
+        reservaId: cancelada.id,
+        productoId: cancelada.productoId,
+        consumidorId: cancelada.consumidorId,
+      });
+    } catch (error) {
+      console.error("Error al publicar en Redis:", error);
+    }
+
+    return new ReservaEntity(cancelada);
+  }
+
   async cancelarReservasExpiradas(): Promise<void> {
     const expiradas = await this.repository.findExpiradas();
 
     await Promise.all(
-      expiradas.map(async (reserva) => {
+      expiradas.map(async reserva => {
         await this.repository.updateEstado(reserva.id, "expirado");
 
         if (reserva.producto.estado === "apartado") {
           await this.prisma.producto.update({
             where: { id: reserva.producto.id },
             data: {
-              cantidadDisponible: { increment: 1 },
+              cantidadDisponible: { increment: reserva.cantidad },
               estado: "disponible",
             },
           });
@@ -128,7 +193,7 @@ export class ReservasService {
           await this.prisma.producto.update({
             where: { id: reserva.producto.id },
             data: {
-              cantidadDisponible: { increment: 1 },
+              cantidadDisponible: { increment: reserva.cantidad },
             },
           });
         }
@@ -142,7 +207,7 @@ export class ReservasService {
         } catch {
           console.error("Error publicando reserva.expirada");
         }
-      })
+      }),
     );
 
     if (expiradas.length > 0) {

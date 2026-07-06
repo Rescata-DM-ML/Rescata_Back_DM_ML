@@ -41,7 +41,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         "Error al conectar con Redis:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -53,7 +53,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         "Error cerrando conexiones de Redis:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -65,15 +65,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         `Error publicando mensaje en canal '${channel}':`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
 
-  async subscribe(
-    channel: string,
-    handler: (message: object) => void
-  ): Promise<void> {
+  async subscribe(channel: string, handler: (message: object) => void): Promise<void> {
     try {
       await this.subscriber.subscribe(channel);
       this.subscriber.on("message", (ch, msg) => {
@@ -88,7 +85,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         `Error suscribiendo al canal '${channel}':`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

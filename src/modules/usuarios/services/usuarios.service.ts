@@ -104,7 +104,8 @@ export class UsuariosService {
     });
 
     return {
-      message: "Has ejercido tu derecho de oposición. Dejaremos de tratar tus datos para finalidades no esenciales.",
+      message:
+        "Has ejercido tu derecho de oposición. Dejaremos de tratar tus datos para finalidades no esenciales.",
     };
   }
 }

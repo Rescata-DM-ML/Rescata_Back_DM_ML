@@ -10,9 +10,27 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
     this.publisher = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
+      lazyConnect: true,
     });
     this.subscriber = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
+      lazyConnect: true,
+    });
+
+    this.publisher.on("error", (error) => {
+      console.error("Redis Publisher error:", error.message);
+    });
+
+    this.subscriber.on("error", (error) => {
+      console.error("Redis Subscriber error:", error.message);
+    });
+
+    this.publisher.connect().catch((error) => {
+      console.error("Redis Publisher initial connection failed:", error.message);
+    });
+
+    this.subscriber.connect().catch((error) => {
+      console.error("Redis Subscriber initial connection failed:", error.message);
     });
   }
 
@@ -23,7 +41,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         "Error al conectar con Redis:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -35,7 +53,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         "Error cerrando conexiones de Redis:",
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
@@ -47,15 +65,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         `Error publicando mensaje en canal '${channel}':`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }
 
-  async subscribe(
-    channel: string,
-    handler: (message: object) => void
-  ): Promise<void> {
+  async subscribe(channel: string, handler: (message: object) => void): Promise<void> {
     try {
       await this.subscriber.subscribe(channel);
       this.subscriber.on("message", (ch, msg) => {
@@ -70,7 +85,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       console.error(
         `Error suscribiendo al canal '${channel}':`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     }
   }

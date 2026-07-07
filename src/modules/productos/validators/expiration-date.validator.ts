@@ -1,16 +1,23 @@
-import { Injectable } from "@nestjs/common";
-import { ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import {
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationOptions,
+  ValidateBy,
+} from "class-validator";
 
-@ValidatorConstraint({ name: "ExpirationDate", async: false })
-@Injectable()
-export class ExpirationDateValidator implements ValidatorConstraintInterface {
+@ValidatorConstraint({ name: "isFutureDate", async: false })
+export class IsFutureDateConstraint implements ValidatorConstraintInterface {
   validate(value: unknown) {
-    if (!value) return false;
-    const date = new Date(value as string | number | Date);
-    return date.getTime() > Date.now();
+    return value instanceof Date && value > new Date();
   }
-
   defaultMessage() {
-    return "La fecha de caducidad debe ser posterior a la fecha actual";
+    return "La fecha de caducidad debe ser posterior a la fecha y hora actual";
   }
+}
+
+export function IsFutureDate(validationOptions?: ValidationOptions) {
+  return ValidateBy(
+    { name: "isFutureDate", validator: new IsFutureDateConstraint() },
+    validationOptions,
+  );
 }

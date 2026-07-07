@@ -1,20 +1,5 @@
-import {
-  Body,
-  Controller,
-  Post,
-  Get,
-  Put,
-  Param,
-  UseGuards,
-  Patch,
-} from "@nestjs/common";
-import {
-  ApiBody,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-  ApiParam,
-} from "@nestjs/swagger";
+import { Body, Controller, Post, Get, Put, Param, UseGuards, Patch } from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
 import { AuthGuard } from "../../../core/guards/auth.guard";
 import { RolesGuard } from "../../../core/guards/roles.guard";
 import { Roles } from "../../../core/decorators/roles.decorator.decorator";
@@ -46,35 +31,46 @@ export class ReservasController {
   @ApiResponse({ status: 404, description: "Producto no encontrado" })
   @ApiResponse({
     status: 409,
-    description:
-      "Producto no disponible, sin stock o reserva duplicada",
+    description: "Producto no disponible, sin stock o reserva duplicada",
   })
   @ApiResponse({
     status: 403,
-    description:
-      "No puedes apartar tu propio producto o rol incorrecto",
+    description: "No puedes apartar tu propio producto o rol incorrecto",
   })
   async crearReserva(
     @Body() dto: CreateReservaDto,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
     // Nota: El negocioId del consumidor se extrae de forma segura a través del JWT payload (user.negocioId)
     // para prevenir problemas de propiedad y evitar vulnerabilidades de Mass Assignment (no viene en el Body).
-    return this.reservasService.crearReserva(dto.productoId, user);
+    return this.reservasService.crearReserva(dto.productoId, user, dto.cantidad);
   }
 
   @Get("mis-reservas")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("consumidor")
-  async getMisReservas() {
-    return { message: "GET /reservas/mis-reservas - consumidor skeleton" };
+  async getMisReservas(@CurrentUser() user: JwtPayload): Promise<ReservaEntity[]> {
+    return this.reservasService.getMisReservas(user.sub);
   }
 
   @Get("negocio")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("negocio")
-  async getReservasNegocio() {
-    return { message: "GET /reservas/negocio - negocio skeleton" };
+  async getReservasNegocio(@CurrentUser() user: JwtPayload): Promise<ReservaEntity[]> {
+    if (!user.negocioId) {
+      throw new Error("El usuario no tiene un negocio asociado");
+    }
+    return this.reservasService.getReservasPorNegocio(user.negocioId);
+  }
+
+  @Get(":id")
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles("consumidor")
+  async getReservaById(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ReservaEntity> {
+    return this.reservasService.findById(id, user.sub);
   }
 
   @Patch(":id/confirmar")
@@ -98,29 +94,27 @@ export class ReservasController {
   @ApiResponse({ status: 404, description: "Reserva no encontrada" })
   @ApiResponse({
     status: 403,
-    description:
-      "Reserva no pertenece a tu negocio o cuenta sin negocio registrado",
+    description: "Reserva no pertenece a tu negocio o cuenta sin negocio registrado",
   })
   @ApiResponse({
     status: 400,
-    description:
-      "Reserva no confirmable. Estado actual: expirado o cancelado",
+    description: "Reserva no confirmable. Estado actual: expirado o cancelado",
   })
   async confirmarRecoleccion(
     @Param("id") reservaId: string,
-    @CurrentUser() user: JwtPayload
+    @CurrentUser() user: JwtPayload,
   ): Promise<ReservaEntity> {
-    return this.reservasService.confirmarRecoleccion(
-      reservaId,
-      user.negocioId
-    );
+    return this.reservasService.confirmarRecoleccion(reservaId, user.negocioId);
   }
 
   @Put(":id/cancelar")
   @UseGuards(AuthGuard, RolesGuard)
   @Roles("consumidor", "negocio")
-  async cancelarReserva(@Param("id") id: string) {
-    return { message: `PUT /reservas/${id}/cancelar - consumidor/negocio skeleton` };
+  async cancelarReserva(
+    @Param("id") id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ReservaEntity> {
+    return this.reservasService.cancelar(id, user.sub);
   }
 }
 

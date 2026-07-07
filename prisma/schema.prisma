@@ -134,6 +134,7 @@ model Reserva {
   consumidorId   String
   negocioId      String
   estado         EstadoReserva @default(pendiente)
+  cantidad       Int           @default(1)
   expiresAt      DateTime      // NOW() + 2 horas (calculado en crear-reserva.use-case.ts)
   fechaRecoleccion DateTime?   // se llena en PATCH /reservas/:id/confirmar
   creadaEn       DateTime      @default(now())
@@ -146,8 +147,7 @@ model Reserva {
   review       Review?
   conversacion Conversacion?
 
-  // Un consumidor no puede tener más de 1 reserva activa para el mismo producto
-  @@unique([productoId, consumidorId, estado])
+  // Un consumidor no puede tener más de 1 reserva activa para el mismo producto (validado en use-case)
   @@map("reservas")
 }
 

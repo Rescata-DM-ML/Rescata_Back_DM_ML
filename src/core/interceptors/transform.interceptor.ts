@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from "@nestjs/common";
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { PrismaService } from "../prisma.service";
@@ -19,7 +14,7 @@ export class TransformInterceptor implements NestInterceptor {
     const response = ctx.getResponse();
 
     return next.handle().pipe(
-      tap((data) => {
+      tap(data => {
         // Determine if it is a critical operation
         let action: string | null = null;
         let userId: string | null = null;
@@ -44,7 +39,11 @@ export class TransformInterceptor implements NestInterceptor {
           }
         } else if (method === "POST" && path === "/reservas") {
           action = "reserva_creada";
-        } else if (method === "PATCH" && path.startsWith("/reservas/") && path.endsWith("/confirmar")) {
+        } else if (
+          method === "PATCH" &&
+          path.startsWith("/reservas/") &&
+          path.endsWith("/confirmar")
+        ) {
           action = "reserva_confirmada";
         } else if (method === "POST" && path === "/reviews") {
           action = "calificacion_creada";
@@ -58,9 +57,7 @@ export class TransformInterceptor implements NestInterceptor {
 
         if (action) {
           const ip =
-            request.headers["x-forwarded-for"] ||
-            request.socket.remoteAddress ||
-            request.ip;
+            request.headers["x-forwarded-for"] || request.socket.remoteAddress || request.ip;
 
           const statusCode = response.statusCode;
           const ahora = new Date();
@@ -92,11 +89,9 @@ export class TransformInterceptor implements NestInterceptor {
                 metadata: logEntry.metadata as Prisma.InputJsonValue,
               },
             })
-            .catch((err) =>
-              console.error("Error saving successful audit log:", err)
-            );
+            .catch(err => console.error("Error saving successful audit log:", err));
         }
-      })
+      }),
     );
   }
 

@@ -10,26 +10,26 @@ El backend implementa una arquitectura modular con separación clara de responsa
 
 ```mermaid
 graph TD
-    subgraph Cliente [Frontend (React + Vite)]
-        Browser[Navegador del Usuario] -->|Peticiones HTTP/REST| API_Client[Axios Client]
+    subgraph Cliente ["Frontend (React + Vite)"]
+        Browser["Navegador del Usuario"] -->|Peticiones HTTP/REST| API_Client["Axios Client"]
     end
 
-    subgraph API_Gateway [Seguridad y API]
-        API_Client -->|Solicitud| Throttle[Rate Limiter (ThrottlerGuard)]
-        Throttle -->|Validación JWT| AuthG[AuthGuard & RolesGuard]
+    subgraph API_Gateway ["Seguridad y API"]
+        API_Client -->|Solicitud| Throttle["Rate Limiter (ThrottlerGuard)"]
+        Throttle -->|Validación JWT| AuthG["AuthGuard & RolesGuard"]
     end
 
-    subgraph NestJS_App [Aplicación NestJS - Servidor API]
-        AuthG -->|Enrutamiento| Controllers[Controladores REST]
-        Controllers -->|Validación de Datos| DTOs[DTOs - class-validator]
-        Controllers -->|Llamada| Services[Servicios de Dominio (Lógica de Negocio)]
-        Services -->|Gestión de Eventos| Events[EventEmitter]
-        Services -->|Acceso a Datos| Prisma[Prisma ORM / Prisma Client]
+    subgraph NestJS_App ["Aplicación NestJS - Servidor API"]
+        AuthG -->|Enrutamiento| Controllers["Controladores REST"]
+        Controllers -->|Validación de Datos| DTOs["DTOs (class-validator)"]
+        Controllers -->|Llamada| Services["Servicios de Dominio (Lógica de Negocio)"]
+        Services -->|Gestión de Eventos| Events["EventEmitter"]
+        Services -->|Acceso a Datos| Prisma["Prisma ORM / Prisma Client"]
     end
 
-    subgraph Data_Layer [Almacenamiento e Infraestructura]
-        Prisma -->|Conexión TCP 5432| DB[(PostgreSQL Database)]
-        Services -->|Conexión TCP 6379| Cache[(Redis Cache / Rate Limit Store)]
+    subgraph Data_Layer ["Almacenamiento e Infraestructura"]
+        Prisma -->|Conexión TCP 5432| DB[("PostgreSQL Database")]
+        Services -->|Conexión TCP 6379| Cache[("Redis Cache / Rate Limit Store")]
     end
 
     style Cliente fill:#e1f5fe,stroke:#039be5,stroke-width:2px

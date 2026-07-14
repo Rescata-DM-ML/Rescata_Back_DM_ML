@@ -1,50 +1,91 @@
-# Rescata - API Backend 🚀
+# Rescata - API Backend 
 
 Este repositorio contiene la API REST para la plataforma **RESCATA**, un sistema diseñado para reducir el desperdicio de alimentos conectando negocios con excedentes de comida y consumidores interesados en adquirirlos a precios reducidos. El backend está desarrollado sobre **NestJS**, usando **Prisma ORM**, **PostgreSQL** y **Redis**.
 
 ---
+## 🏛️ Arquitectura y Estructura del Proyecto
 
-## 🗺️ Arquitectura de Software
+El backend está construido bajo una **Arquitectura Modular y de Capas (N-Tier Architecture)** promovida por el framework NestJS. Esta estructura garantiza un código altamente escalable, desacoplado y fácil de mantener.
 
-El backend implementa una arquitectura modular con separación clara de responsabilidades, siguiendo principios de desarrollo limpio (Clean Architecture) y patrones de diseño robustos (Guards, DTOs, Services, Repositories).
+### Componentes Clave
 
-```mermaid
-graph TD
-    subgraph Cliente [Frontend (React + Vite)]
-        Browser[Navegador del Usuario] -->|Peticiones HTTP/REST| API_Client[Axios Client]
-    end
+- **NestJS Modules:** Encapsulación lógica por dominio (`auth`, `usuarios`, `productos`, `reservas`, `reviews`, `chat`, `estadisticas`).
+- **Prisma Client:** Capa de abstracción de base de datos eficiente y segura con tipado fuerte.
+- **PostgreSQL:** Motor relacional robusto para el resguardo de información de usuarios, negocios, productos y auditorías.
+- **Redis:** Servidor en caché que sirve como almacenamiento rápido para el límite de peticiones (Rate Limiter).
 
-    subgraph API_Gateway [Seguridad y API]
-        API_Client -->|Solicitud| Throttle[Rate Limiter (ThrottlerGuard)]
-        Throttle -->|Validación JWT| AuthG[AuthGuard & RolesGuard]
-    end
+### Estructura de Directorios Detallada
 
-    subgraph NestJS_App [Aplicación NestJS - Servidor API]
-        AuthG -->|Enrutamiento| Controllers[Controladores REST]
-        Controllers -->|Validación de Datos| DTOs[DTOs - class-validator]
-        Controllers -->|Llamada| Services[Servicios de Dominio (Lógica de Negocio)]
-        Services -->|Gestión de Eventos| Events[EventEmitter]
-        Services -->|Acceso a Datos| Prisma[Prisma ORM / Prisma Client]
-    end
+A continuación, se detalla cómo los componentes clave se integran en la estructura física del proyecto:
 
-    subgraph Data_Layer [Almacenamiento e Infraestructura]
-        Prisma -->|Conexión TCP 5432| DB[(PostgreSQL Database)]
-        Services -->|Conexión TCP 6379| Cache[(Redis Cache / Rate Limit Store)]
-    end
+```text
+Rescata_Back_DM_ML/
+├── prisma/                    # (PostgreSQL & Prisma)
+│   └── schema.prisma          # Esquema de DB relacional, modelos y conexión
+│
+├── src/
+│   ├── core/                  # Lógica transversal e infraestructura
+│   │   ├── prisma.service.ts  # (Prisma Client) Conexión a la DB instanciada
+│   │   ├── adapters/          # Adaptadores para servicios externos
+│   │   ├── decorators/        # Decoradores personalizados
+│   │   ├── filters/           # Manejo global de excepciones (Ej. Prisma Errors)
+│   │   ├── guards/            # Seguridad, Roles y JWT
+│   │   └── interceptors/      # Formateo y estandarización de respuestas
+│   │
+│   ├── modules/               # (NestJS Modules) Dominio de Negocio
+│   │   ├── auth/              # ↳ Controladores, Servicios y DTOs de Autenticación
+│   │   ├── usuarios/          # ↳ Gestión de usuarios y perfiles
+│   │   ├── productos/         # ↳ Manejo del catálogo de mermas
+│   │   ├── reservas/          # ↳ Lógica de transacciones y recolecciones
+│   │   ├── reviews/           # ↳ Reseñas de los negocios
+│   │   ├── chat/              # ↳ Comunicación en tiempo real
+│   │   ├── estadisticas/      # ↳ Métricas e impacto ambiental
+│   │   └── negocios/          # ↳ Gestión de locales y comercios
+│   │
+│   ├── redis/                 # (Redis)
+│   │   └── redis.module.ts    # Configuración e instancia del Rate Limiter en caché
+│   │
+│   ├── app.module.ts          # Raíz que orquesta la inyección global
+│   └── main.ts                # Punto de entrada de la API
+│
+├── docker-compose.yml         # Contenedores para levantar PostgreSQL y Redis localmente
+└── .env                       # Variables de entorno (Credenciales DB, JWT, Redis)
 
-    style Cliente fill:#e1f5fe,stroke:#039be5,stroke-width:2px
-    style API_Gateway fill:#fce4ec,stroke:#e91e63,stroke-width:2px
-    style NestJS_App fill:#efebe9,stroke:#5d4037,stroke-width:2px
-    style Data_Layer fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+### 🧩 Patrones de Diseño Implementados
+
+El proyecto hace uso extensivo de patrones de diseño de nivel empresarial integrados tanto por el framework como por nuestra estructura en el directorio `src/core/`:
+
+1. **Inyección de Dependencias (Dependency Injection) e Inversión de Control (IoC):**
+   - **Propósito:** Desacoplar la creación de objetos de su uso. 
+   - **Aplicación:** Utilizado en todo el proyecto. Los Controladores no instancian los Servicios directamente (no se usa `new`), el contenedor de NestJS inyecta las dependencias a través del constructor. (Ej. inyectar `AuthService` en `AuthController`).
+
+2. **Patrón Decorador (Decorator Pattern):**
+   - **Propósito:** Añadir comportamiento y metadatos a clases, métodos o propiedades dinámicamente sin alterar su estructura base.
+   - **Aplicación:** Es la base fundamental de la API. Se usan decoradores nativos como `@Controller()`, `@Injectable()`, `@Get()`, `@UseGuards()`, y decoradores a medida en `src/core/decorators/`.
+
+3. **Patrón Singleton:**
+   - **Propósito:** Garantizar que una clase tenga una única instancia en toda la aplicación para ahorrar recursos y compartir estado (como pools de conexiones).
+   - **Aplicación:** Todos los servicios (providers) marcados con `@Injectable()`, destacando nuestra conexión a la base de datos `PrismaService` y el servicio de `Redis`, son Singletons por defecto.
+
+4. **Patrón DTO (Data Transfer Object):**
+   - **Propósito:** Encapsular y transportar datos entre el cliente y el servidor, garantizando la estructura de la información entrante.
+   - **Aplicación:** Implementado en las carpetas `dtos/` de cada módulo (ej. `login.dto.ts`). Trabaja con `class-validator` para sanear peticiones HTTP antes de que toquen la lógica.
+
+5. **Patrón Interceptor / Cadena de Responsabilidad:**
+   - **Propósito:** Interceptar el flujo de una petición HTTP para mutarla o ejecutar lógica antes y después de que llegue al manejador de la ruta.
+   - **Aplicación:** Utilizado en `src/core/interceptors/` (como el Response Interceptor) para estandarizar el JSON que devuelve toda la API de forma centralizada.
+
+6. **Patrón Adaptador (Adapter Pattern):**
+   - **Propósito:** Servir de puente entre herramientas externas incompatibles y nuestra lógica de negocio, creando una interfaz estándar.
+   - **Aplicación:** Implementado en la carpeta `src/core/adapters/` para envolver librerías de terceros (encriptación, utilidades), aislando nuestro código de posibles cambios en dichas dependencias.
+
+7. **Patrón Filtro de Excepciones (Exception Filter Pattern):**
+   - **Propósito:** Centralizar el manejo de errores en una sola capa transversal.
+   - **Aplicación:** Ubicado en `src/core/filters/`, atrapa excepciones (como errores de constraint de Prisma o errores 404) y las transforma en respuestas JSON estructuradas para el frontend.
 ```
+<img width="1551" height="859" alt="Copy of Rescata_Diagrama drawio" src="https://github.com/user-attachments/assets/9d0186cc-78a5-4227-9770-c361cf3641eb" />
 
-### Componentes Clave:
-- **NestJS Modules**: Encapsulación lógica por dominio (`auth`, `usuarios`, `productos`, `reservas`, `reviews`, `chat`, `estadisticas`).
-- **Prisma Client**: Capa de abstracción de base de datos eficiente y segura con tipado fuerte.
-- **PostgreSQL**: Motor relacional robusto para el resguardo de información de usuarios, negocios, productos y auditorías.
-- **Redis**: Servidor en caché que sirve como almacenamiento rápido para el límite de peticiones (Rate Limiter).
 
----
 
 ## 🐳 Instrucciones de Ejecución Local con Docker-Compose
 
@@ -121,6 +162,9 @@ Para facilitar la evaluación de la plataforma con diferentes vistas y flujos se
 | **Negocio** | `negocio@rescata.com` | `Password123!` | Registrar y gestionar información de la tienda, publicar nuevos productos (precio original, precio oferta, cantidad y caducidad), administrar y confirmar reservas de clientes, y chatear con los consumidores. |
 
 ---
+## ALOJAMIENTO EN RAILWAY
+<img width="766" height="427" alt="image" src="https://github.com/user-attachments/assets/16c82598-0706-4c23-9f94-76afa217211a" />
+
 
 ## 🛡️ Seguridad y Cifrado en Reposo
 
@@ -134,14 +178,3 @@ El proyecto RESCATA implementa políticas de seguridad para el resguardo de info
    - Consulta el documento de detalle técnico en [docs/cifrado-reposo.md](file:///c:/Users/natzl/Desktop/DIW/proyecto/Rescata_Back_DM_ML/docs/cifrado-reposo.md).
 
 ---
-
-## ⚙️ Evidencia de Ejecuciones Exitosas de GitHub Actions
-
-El repositorio cuenta con integración continua (CI) mediante GitHub Actions configurado en el archivo `.github/workflows/hello.yml`. Este flujo se encarga de ejecutar tareas básicas de verificación de entorno y logs para asegurar la salud operativa del código de manera automatizada.
-
-A continuación se muestra la evidencia de la ejecución exitosa de la build automatizada:
-
-![Ejecución Exitosa de GitHub Actions - Backend](docs/images/github-actions-backend.png)
-
-> [!IMPORTANT]
-> La captura de pantalla correspondiente se encuentra guardada en la ruta local: `docs/images/github-actions-backend.png`. Asegúrese de colocar su imagen en esa ruta para el correcto renderizado de esta documentación.

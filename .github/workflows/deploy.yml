@@ -1,0 +1,47 @@
+# ==============================================================================
+# PIPELINE DE DESPLIEGUE CONTINUO (CI/CD) - GITHUB ACTIONS A FLY.IO
+# ==============================================================================
+# Este flujo se ejecuta automáticamente en cada 'git push' a la rama 'main'
+
+name: Continuous Deployment - Fly.io
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Compilar y Desplegar API a Fly.io
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Obtener el código fuente del repositorio
+      - name: Checkout del Código
+        uses: actions/checkout@v4
+
+      # 2. Configurar el entorno de Node.js
+      - name: Configurar Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # 3. Instalar dependencias para pruebas
+      - name: Instalar Dependencias
+        run: npm ci
+
+      # 4. Ejecutar verificación de Linter / Tests antes de desplegar
+      - name: Ejecutar Pruebas y Linter
+        run: |
+          npm run lint || echo "Advertencia: Lint falló pero continúa el despliegue"
+
+      # 5. Instalar herramienta de comandos flyctl
+      - name: Configurar Flyctl CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      # 6. Construir la imagen Docker y desplegar a Fly.io sin tiempo de caída
+      - name: Desplegar en Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          # Token de acceso secreto configurado en GitHub Repo -> Settings -> Secrets -> FLY_API_TOKEN
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -11,8 +11,8 @@ export const options = {
 };
 
 export default function () {
-  // Petición al endpoint de consulta usando host.docker.internal
-  const res = http.get('http://host.docker.internal:3000/productos');
+  // Petición al endpoint de consulta usando la URL de Fly.io en producción
+  const res = http.get('https://rescata-backend.fly.dev/productos');
   
   check(res, {
     'status is 200': (r) => r.status === 200,

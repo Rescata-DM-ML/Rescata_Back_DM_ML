@@ -14,7 +14,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get('http://host.docker.internal:3000/productos');
+  const res = http.get('https://rescata-backend.fly.dev/productos');
   
   check(res, {
     'status is 200': (r) => r.status === 200,

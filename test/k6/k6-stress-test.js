@@ -14,7 +14,7 @@ export const options = {
 };
 
 export default function () {
-  const url = 'http://host.docker.internal:3000/auth/login';
+  const url = 'https://rescata-backend.fly.dev/auth/login';
   const payload = JSON.stringify({
     correo: 'consumidor@rescata.com',
     contrasena: 'Password123!',

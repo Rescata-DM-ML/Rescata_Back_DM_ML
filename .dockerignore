@@ -1,0 +1,17 @@
+# flyctl launch added from .gitignore
+**/node_modules
+**/dist
+
+**/.env
+**/.env.keys
+**/*.env.local
+
+generated/prisma
+**/.env*
+**/.flaskenv*
+!**/.env.project
+!**/.env.vault
+
+# flyctl launch added from .husky/_/.gitignore
+.husky/_/**/*
+fly.toml

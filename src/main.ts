@@ -23,7 +23,7 @@ async function bootstrap() {
     origin: process.env.FRONTEND_VERCEL,
     credentials: true,
   });
-
+  
   app.useStaticAssets(join(process.cwd(), "uploads"), {
     prefix: "/uploads/",
   });

@@ -20,7 +20,18 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: process.env.FRONTEND_VERCEL,
+    origin: (origin, callback) => {
+      // Permitir siempre orígenes locales (http://localhost:* y http://127.0.0.1:*) y peticiones sin origen
+      if (
+        !origin ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.startsWith("https://")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   });
 

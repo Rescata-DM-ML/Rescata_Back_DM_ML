@@ -11,7 +11,7 @@ import { RegisterBusinessDto } from "../dtos/register-business.dto";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Throttle({ default: { limit: 10, ttl: 900000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === "production" ? 10 : 1000, ttl: 900000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: express.Response) {
@@ -42,14 +42,14 @@ export class AuthController {
     return { message: "Sesión cerrada" };
   }
 
-  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === "production" ? 5 : 1000, ttl: 3600000 } })
   @Post("register/consumer")
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 3600000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === "production" ? 5 : 1000, ttl: 3600000 } })
   @Post("register/business")
   @HttpCode(HttpStatus.CREATED)
   async registerBusiness(

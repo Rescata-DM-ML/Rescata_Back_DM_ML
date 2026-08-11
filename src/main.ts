@@ -20,21 +20,10 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: (origin, callback) => {
-      // Permitir siempre orígenes locales (http://localhost:* y http://127.0.0.1:*) y peticiones sin origen
-      if (
-        !origin ||
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:") ||
-        origin.startsWith("https://")
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, true);
-    },
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   });
-
+  
   app.useStaticAssets(join(process.cwd(), "uploads"), {
     prefix: "/uploads/",
   });

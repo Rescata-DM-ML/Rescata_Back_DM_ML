@@ -1,22 +1,4 @@
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: rescata_backend
-    restart: always
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
   postgres:
     image: postgres:16
     container_name: rescata_postgres
@@ -30,7 +12,6 @@ services:
     command: >
       postgres
       -c ssl=off
-      -c data_checksums=on
       -c log_connections=off
       -c log_disconnections=off
     volumes:
@@ -53,7 +34,39 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rescata_backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      PORT: ${PORT}
+      FRONTEND_URL: http://localhost
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../rescata_front_DM_ML
+      dockerfile: Dockerfile
+    container_name: rescata_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
     labels:
-      com.rescata.description: "Volumen de datos PostgreSQL - cifrar disco en producción"
+      com.rescata.description: "Volumen de datos PostgreSQL - cifrar disco en producción"
